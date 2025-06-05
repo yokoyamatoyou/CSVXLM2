@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<xs:schema xmlns:mif="urn:hl7-org:v3/mif" xmlns="urn:hl7-org:v3" xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="urn:hl7-org:v3" elementFormDefault="qualified">
+  <!-- 共通XMLスキーマ読み込み -->
+  <xs:include schemaLocation="./coreschemas/datatypes_hcgv08.xsd"/>
+  <xs:include schemaLocation="./coreschemas/voc_hcgv08.xsd"/>
+  <xs:include schemaLocation="./coreschemas/narrativeBlock_hcgv08.xsd"/>
+  <!-- 要素定義 -->
+  <xs:element name="ClinicalDocument" type="POCD_MT000040.ClinicalDocument"/>
+  <xs:complexType name="POCD_MT000040.ClinicalDocument">
+    <xs:all>
+      <!-- == ヘッダ部 == -->
+      <!-- 1 タイプID -->
+      <xs:element name="typeId">
+        <xs:complexType>
+          <xs:complexContent>
+            <xs:restriction base="II">
+              <xs:attribute name="root"       type="uid"  use="required"  fixed="2.16.840.1.113883.1.3"/>
+              <xs:attribute name="extension"  type="st"   use="required"/>
+            </xs:restriction>
+          </xs:complexContent>
+        </xs:complexType>
+      </xs:element>
+      <!-- 2 生成されたファイルの識別子 -->
+      <xs:element name="id"     type="II"/>
+      <!-- 3 報告区分コード -->
+      <xs:element name="code"   minOccurs="0">
+        <xs:complexType>
+          <xs:complexContent>
+            <xs:restriction base="CD">
+              <!-- 3.1 報告区分コードOID -->
+              <xs:attribute name="codeSystem" type="uid"  use="optional" fixed="1.2.392.200119.6.1001"/>
+              <!-- 3.2 コード -->
+              <xs:attribute name="code"       type="cs"   use="required"/>
+            </xs:restriction>
+          </xs:complexContent>
+        </xs:complexType>
+      </xs:element>
+      <!-- 4 ファイル作成日 -->
+      <xs:element name="effectiveTime"        type="TS"/>
+      <!-- 5 守秘レベルコード -->
+      <xs:element name="confidentialityCode"  type="CE"/>
+      <!-- 6 受診者情報 -->
+      <xs:element name="recordTarget"         type="POCD_MT000040.RecordTarget"/>
+      <!-- 7 ファイル作成機関 -->
+      <xs:element name="author"               type="POCD_MT000040.Author"/>
+      <!-- 8 ファイル作成管理責任機関 -->
+      <xs:element name="custodian"            type="POCD_MT000040.Custodian"/>
+      <!-- 9 自治体独自管理番号(住民番号・受診券番号等) -->
+      <xs:element name="participant"          type="POCD_MT000040.Participant1" minOccurs="0"/>
+      <!-- 10 検診実施情報 -->
+      <xs:element name="documentationOf"      type="POCD_MT000040.DocumentationOf"/>
+      <!-- 11 ボディ部 -->
+      <xs:element name="component"            type="POCD_MT000040.Component2"/>
+    </xs:all>
+  </xs:complexType>
+
+  <!-- 6 受診者情報 -->
+  <xs:complexType name="POCD_MT000040.RecordTarget">
+    <xs:sequence>
+      <xs:element name="patientRole" type="POCD_MT000040.PatientRole"/>
+    </xs:sequence>
+  </xs:complexType>
+  <!-- 受診者:定義 -->
+  <xs:complexType name="POCD_MT000040.PatientRole">
+    <xs:sequence>
+      <!-- 6.1 保険者番号 ～ 6.4 被保険者証等枝番 -->
+      <xs:element name="id"       type="POCD_MT000040.InsuranceId"  minOccurs="0" maxOccurs="unbounded"/>
+      <!-- 6.5 受診者住所,連絡先 -->
+      <xs:element name="addr"     type="POCD_MT000040.Address"      minOccurs="0"/>
+      <!-- 6.7 受診者連絡先 -->
+      <xs:element name="telecom"  type="TEL"                        minOccurs="0"/>
+      <!-- 6.8 受診者詳細 -->
+      <xs:element name="patient"  type="POCD_MT000040.Patient"      minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+  <!-- 保険資格:定義 -->
+  <xs:complexType name="POCD_MT000040.InsuranceId">
+    <!-- 6.x.1 OID -->
+    <xs:attribute name="root"       type="uid"/>
+    <!-- 6.x.2 番号 -->
+    <xs:attribute name="extension"  type="st"/>
+  </xs:complexType>
+  <!-- 受診者詳細:定義 -->
+  <xs:complexType name="POCD_MT000040.Patient">
+    <xs:sequence>
+      <!-- 6.9 氏名 -->
+      <xs:element name="name"       type="PN"   minOccurs="0"/>
+      <!-- 6.10 男女区分 -->
+      <xs:element name="administrativeGenderCode" type="CE"   minOccurs="0"/>
+      <!-- 6.11 生年月日 -->
+      <xs:element name="birthTime"  type="TS"   minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- 7 ファイル作成機関 -->
+  <xs:complexType name="POCD_MT000040.Author">
+    <xs:sequence>
+      <!-- 7.1 ファイル作成日 -->
+      <xs:element name="time"           type="TS"/>
+      <!-- 7.2 ファイル作成機関情報 -->
+      <xs:element name="assignedAuthor">
+        <xs:complexType>
+          <xs:sequence>
+            <!-- 7.3 ファイル作成機関識別子 -->
+            <xs:element name="id"   type="II" maxOccurs="unbounded"/>
+            <!-- 7.4 ファイル作成機関 -->
+            <xs:element name="representedOrganization" type="POCD_MT000040.Organization" minOccurs="0"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- 機関:定義 -->
+  <xs:complexType name="POCD_MT000040.Organization">
+    <xs:sequence>
+      <!-- 番号 -->
+      <xs:element name="id"       type="II"   minOccurs="0"/>
+      <!-- 名称 -->
+      <xs:element name="name"     type="ON"/>
+      <!-- 連絡先 -->
+      <xs:element name="telecom"  type="TEL"  minOccurs="0"/>
+      <!-- 所在地/住所 -->
+      <xs:element name="addr"     type="POCD_MT000040.Address"  minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+  <!-- 所在地/住所:定義 -->
+  <xs:complexType name="POCD_MT000040.Address" mixed="true">
+    <xs:sequence>
+      <!-- 郵便番号 -->
+      <xs:element name="postalCode" type="POCD_MT000040.PostalCode"/>
+    </xs:sequence>
+  </xs:complexType>
+  <!-- 郵便番号:定義 -->
+  <xs:simpleType name="POCD_MT000040.PostalCode">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[0-9]{3}-[0-9]{4}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- 8 ファイル作成管理責任機関 ** -->
+  <xs:complexType name="POCD_MT000040.Custodian">
+    <xs:sequence>
+      <xs:element name="assignedCustodian">
+        <xs:complexType>
+          <xs:sequence>
+            <!-- 8.1 ファイル作成管理責任機関 -->
+            <xs:element name="representedCustodianOrganization">
+              <xs:complexType>
+                <xs:sequence>
+                  <!-- 8.2 ファイル作成管理責任機関番号 -->
+                  <xs:element name="id" type="II" maxOccurs="unbounded"/>
+                </xs:sequence>
+              </xs:complexType>
+            </xs:element>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- 9 自治体独自管理番号(住民番号・受診券番号等) -->
+  <xs:complexType name="POCD_MT000040.Participant1">
+    <xs:sequence>
+      <!-- 9.2 自治体独自管理番号 -->
+      <xs:element name="associatedEntity" type="POCD_MT000040.AssociatedEntity"/>
+    </xs:sequence>
+    <xs:attribute name="typeCode" type="ParticipationType" use="required"/>
+  </xs:complexType>
+
+  <!-- 自治体独自管理番号:定義 -->
+  <xs:complexType name="POCD_MT000040.AssociatedEntity">
+    <xs:sequence>
+      <!-- 9.3 自治体独自管理番号 -->
+      <xs:element name="id" type="II" minOccurs="0" maxOccurs="unbounded"/>
+      <!-- 9.4 管理番号を発行した自治体情報 -->
+      <xs:element name="scopingOrganization" type="POCD_MT000040.Organization" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="classCode" type="RoleClassAssociative" use="required"/>
+  </xs:complexType>
+
+  <!-- 10 検診実施情報 -->
+  <xs:complexType name="POCD_MT000040.DocumentationOf">
+    <xs:sequence>
+      <xs:element name="serviceEvent" type="POCD_MT000040.ServiceEvent"/>
+    </xs:sequence>
+  </xs:complexType>
+  <!-- 検診実施情報:定義 -->
+  <xs:complexType name="POCD_MT000040.ServiceEvent">
+    <xs:sequence>
+      <!-- 10.1 検診種別 -->
+      <xs:element name="code"           type="CD"/>
+      <!-- 10.2 検診実施日 -->
+      <xs:element name="effectiveTime"  type="IVL_TS"/>
+      <!-- 10.3 検診実施機関 -->
+      <xs:element name="performer"      type="POCD_MT000040.Performer1"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- 検診実施機関:定義 -->
+  <xs:complexType name="POCD_MT000040.Performer1">
+    <xs:sequence>
+      <!-- 10.4 検診実施機関 -->
+      <xs:element name="assignedEntity">
+        <xs:complexType>
+          <xs:sequence>
+            <!-- 10.5 検診実施機関識別子 -->
+            <xs:element name="id" type="II"/>
+            <!-- 10.6 検診実施機関 -->
+            <xs:element name="representedOrganization"  type="POCD_MT000040.Organization" minOccurs="0"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+    <!-- 10.3.1 -->
+    <xs:attribute name="typeCode" type="x_ServiceEventPerformer"  use="required"/>
+  </xs:complexType>
+
+  <!-- == ボディ部 == -->
+  <xs:complexType name="POCD_MT000040.Component2">
+    <xs:sequence>
+      <!-- 11 構造化ボディ -->
+      <xs:element name="structuredBody">
+        <xs:complexType>
+          <xs:sequence>
+            <!-- 12 セクションへの包含関係 -->
+            <xs:element name="component" maxOccurs="unbounded">
+              <xs:complexType>
+                <xs:sequence>
+                  <!-- 13 セクション -->
+                  <xs:element name="section"  type="POCD_MT000040.Section"/>
+                </xs:sequence>
+              </xs:complexType>
+            </xs:element>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+  <!-- セクション:定義 -->
+  <xs:complexType name="POCD_MT000040.Section">
+    <xs:sequence>
+      <!-- 13.1 CDAセクションコード -->
+      <xs:element name="code"     type="CE"   minOccurs="0"/>
+      <!-- 13.2 CDAセクションタイトル -->
+      <xs:element name="title"    type="ST"   minOccurs="0"/>
+      <!-- 13.3 CDAセクションの説明ブロック -->
+      <xs:element name="text"     type="ST"   minOccurs="0"/>
+      <!-- 13.4 CDAセクションの機械可読表現 -->
+      <xs:element name="entry"    type="POCD_MT000040.Entry"  minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="POCD_MT000040.Entry">
+  <!-- エントリ部:定義 -->
+    <xs:sequence>
+      <!-- 13.5 検査結果 -->
+      <xs:element name="observation"  type="POCD_MT000040.Observation"/>
+    </xs:sequence>
+  </xs:complexType>
+  <!-- 検査結果:定義 -->
+  <xs:complexType name="POCD_MT000040.Observation">
+    <xs:sequence>
+      <xs:element name="id"   type="II" minOccurs="0" maxOccurs="unbounded"/>
+      <!-- 13.6 検診項目コード -->
+      <xs:element name="code"           minOccurs="0" maxOccurs="unbounded">
+        <xs:complexType>
+          <xs:complexContent>
+            <xs:restriction base="CD">
+              <!-- 13.6.1 検診項目コードOID -->
+              <xs:attribute name="codeSystem"   type="uid"  use="optional"  default="1.2.392.100495.100.1051"/>
+              <!-- 13.6.2 検査項目コード -->
+              <xs:attribute name="code"         type="cs"   use="optional"/>
+              <!-- 13.6.3 検診項目コード表示名 -->
+              <xs:attribute name="displayName"  type="st"   use="optional"/>
+            </xs:restriction>
+          </xs:complexContent>
+        </xs:complexType>
+      </xs:element>
+      <!-- 13.7 検診結果 -->
+      <xs:element name="value"              type="ANY"  minOccurs="0" maxOccurs="unbounded"/>
+      <!-- 13.8 一連検査グループ -->
+      <xs:element name="entryRelationship"  type="POCD_MT000040.EntryRelationship"  minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <!-- 13.5.1 -->
+    <xs:attribute name="classCode"  type="ActClassObservation"          use="required"/>
+    <!-- 13.5.2 -->
+    <xs:attribute name="moodCode"   type="x_ActMoodDocumentObservation" use="required"/>
+  </xs:complexType>
+  <!-- 一連検査グループ:定義 -->
+  <xs:complexType name="POCD_MT000040.EntryRelationship">
+    <xs:sequence>
+      <xs:choice>
+        <xs:element name="observation" type="POCD_MT000040.Observation"/>
+      </xs:choice>
+    </xs:sequence>
+    <!-- 13.8.1 一連検査グループ 関係性コード -->
+    <xs:attribute name="typeCode" type="x_ActRelationshipEntryRelationship" use="required"/>
+  </xs:complexType>
+</xs:schema>
