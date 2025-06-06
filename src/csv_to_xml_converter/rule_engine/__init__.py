@@ -14,7 +14,9 @@ def to_integer(v: Any) -> Optional[int]:
     except ValueError: raise RuleApplicationError(f"Int conversion error: {v}")
 
 def to_date_yyyymmdd(v: Any) -> Optional[str]:
-    if v is None: return None; s_v = str(v).strip();
+    s_v: Optional[str] = None # Explicitly initialize s_v
+    if v is None: return None
+    s_v = str(v).strip()
     if not s_v: return None
     m = re.match(r"^(\d{4})[\/-]?(\d{1,2})[\/-]?(\d{1,2})$", s_v);
     if m: y,mo,d = m.groups(); return f"{y}{mo.zfill(2)}{d.zfill(2)}";

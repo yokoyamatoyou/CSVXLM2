@@ -123,5 +123,18 @@
     "guidance_settlement": {
       "documentIdRootOid": "1.2.392.200119.6.1.GC.DEFAULT"
     }
+  },
+  "index_defaults": {
+    "interactionType": "1",
+    "senderIdRootOid": "1.2.392.100000.6.9999",
+    "senderIdExtension": "SENDER_ORG_ID_001",
+    "receiverIdRootOid": "1.2.392.200000.6.8888",
+    "receiverIdExtension": "RECEIVER_ORG_ID_001",
+    "serviceEventType": "1"
+  },
+  "summary_defaults": {
+    "serviceEventTypeCode": "AGG_SUMMARY",
+    "serviceEventTypeCodeSystem": "1.2.392.100000.6.9999.1",
+    "serviceEventTypeDisplayName": "集計サマリー"
   }
 }

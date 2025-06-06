@@ -12,7 +12,6 @@
   <settlement>
     <claimType code="2"/>
     <commissionType code="0"/>
-    <totalPoints value="1200"/>
     <totalCost value="12000"/>
     <copaymentAmount value="0"/>
     <claimAmount value="12000"/>

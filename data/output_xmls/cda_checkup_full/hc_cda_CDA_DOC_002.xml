@@ -33,27 +33,22 @@
       </representedCustodianOrganization>
     </assignedCustodian>
   </custodian>
-  <documentationOf>
-    <serviceEvent>
-      <effectiveTime value="20230601"/>
-    </serviceEvent>
-  </documentationOf>
   <component typeCode="COMP">
     <structuredBody>
       <component>
         <section>
-          <code code=""/>
-          <title>検査・問診結果</title>
+          <code/>
+          <title>検査結果</title>
           <text>特定健診の検査結果を以下に示す。</text>
           <entry typeCode="DRIV">
             <observation classCode="OBS" moodCode="EVN">
-              <code code=""/>
+              <code/>
               <value xsi:type="dt:PQ" value="160" unit="cm"/>
             </observation>
           </entry>
           <entry typeCode="DRIV">
             <observation classCode="OBS" moodCode="EVN">
-              <code code=""/>
+              <code/>
               <value xsi:type="dt:PQ" value="55" unit="kg"/>
             </observation>
           </entry>

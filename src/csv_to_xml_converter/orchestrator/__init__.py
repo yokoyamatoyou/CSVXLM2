@@ -5,9 +5,15 @@ Orchestrates the CSV to XML conversion process for all document types.
 
 import logging; import json; from typing import Dict, Any, List, Optional; import os; from lxml import etree; import zipfile; import shutil; from datetime import datetime, timezone; from pathlib import Path
 
-from ..csv_parser import parse_csv, CSVParsingError
-from ..rule_engine import load_rules, apply_rules, RuleApplicationError
-from ..xml_generator import generate_index_xml, generate_summary_xml, generate_health_checkup_cda, generate_health_guidance_cda, generate_checkup_settlement_xml, generate_guidance_settlement_xml
+from ..csv_parser import parse_csv, parse_csv_from_profile # CSVParsingError not used directly in this file after changes
+from ..rule_engine import load_rules, apply_rules # RuleApplicationError not used directly
+from ..xml_generator import (
+    generate_index_xml, generate_summary_xml,
+    generate_health_checkup_cda, generate_health_guidance_cda,
+    generate_checkup_settlement_xml, generate_guidance_settlement_xml,
+    # Import new parsing utilities
+    get_claim_amount_from_cc08, get_claim_amount_from_gc08, get_subject_count_from_cda
+)
 from ..validator import validate_xml, XMLValidationError
 
 logger = logging.getLogger(__name__)
@@ -38,56 +44,152 @@ class Orchestrator:
         logger.info("Orchestrator initialized (CSV profiles and OID catalog processing attempted).")
 
     def _get_csv_profile(self, profile_name: str) -> Dict[str, Any]:
-        default_p = {"encoding": "utf-8", "delimiter": ",", "header": True}
+        # This method might be less relevant if CSV parsing for index/summary is removed,
+        # but could still be used by other CSV processing methods.
+        # For now, keeping it as it's used by CDA/Settlement processing.
+        default_p = {"encoding": "utf-8", "delimiter": ",", "header": True} # parse_csv new defaults
+        # The new parse_csv takes profile dict directly for 'source', 'delimiter', 'encoding', 'required_columns', 'skip_comments'
+        # This _get_csv_profile was for the old parse_csv that took a profile *object* with more fields.
+        # Let's simplify its return to be compatible with the new parse_csv_from_profile if needed,
+        # or just acknowledge it's mainly for the other processors.
+        # For now, the methods like process_csv_to_health_checkup_cdas will need to adapt
+        # if they intend to use the new parse_csv signature or parse_csv_from_profile.
+        # This subtask doesn't change those, so _get_csv_profile remains as is for them.
         effective_default = self.csv_profiles.get("default", default_p)
         return self.csv_profiles.get(profile_name, effective_default)
 
-    def process_single_csv_to_index_xml(self, csv_file_path: str, rules_file_path: str, xsd_file_path: str, output_xml_path: str, csv_profile_name: str = "index_profile") -> bool:
-        logger.info(f"Processing index.xml from {csv_file_path} using profile \"{csv_profile_name}\"")
+    def generate_aggregated_index_xml(self, data_xml_files: List[str], claims_xml_files: List[str], output_xml_path: str, xsd_file_path: str) -> bool:
+        logger.info(f"Generating aggregated index.xml to {output_xml_path}")
         try:
-            profile = self._get_csv_profile(csv_profile_name)
-            logger.debug(f"Index CSV Profile: {profile}")
-            parsed_data = parse_csv(csv_file_path, profile=profile)
-            if not parsed_data: logger.error(f"No data from {csv_file_path}"); return False
-            record_data = parsed_data[0]
-            rules = load_rules(rules_file_path)
-            transformed_list = apply_rules([record_data], rules, lookup_tables=self.lookup_tables)
-            if not transformed_list: logger.error("No data after rules for index.xml"); return False
-            transformed_record = transformed_list[0]
-            xml_string = generate_index_xml(transformed_record)
-            is_valid, errors = validate_xml(xml_string, xsd_file_path)
-            if not is_valid: logger.error(f"index.xml FAILED validation: {errors}"); return False
-            Path(output_xml_path).parent.mkdir(parents=True, exist_ok=True)
-            with open(output_xml_path, "w", encoding="utf-8") as f: f.write(xml_string)
-            logger.info(f"Wrote index.xml to: {output_xml_path}")
-            return True
-        except Exception as e: logger.error(f"Error for index.xml: {e}", exc_info=True); return False
+            total_record_count = len(data_xml_files) + len(claims_xml_files)
+            creation_time = datetime.now(timezone.utc).strftime("%Y%m%d") # Changed to YYYYMMDD for index.xml
 
-    def process_single_csv_to_summary_xml(self, csv_file_path: str, rules_file_path: str, xsd_file_path: str, output_xml_path: str, csv_profile_name: str = "summary_profile") -> bool:
-        logger.info(f"Processing summary.xml from {csv_file_path} using profile \"{csv_profile_name}\"")
-        try:
-            profile = self._get_csv_profile(csv_profile_name)
-            logger.debug(f"Summary CSV Profile: {profile}")
-            parsed_data = parse_csv(csv_file_path, profile=profile)
-            if not parsed_data: logger.error(f"No data from {csv_file_path}"); return False
-            record_data = parsed_data[0]
-            rules = load_rules(rules_file_path)
-            transformed_list = apply_rules([record_data], rules, lookup_tables=self.lookup_tables)
-            if not transformed_list: logger.error("No data after rules for summary.xml"); return False
-            xml_string = generate_summary_xml(transformed_list[0])
+            index_defaults = self.config.get("index_defaults", {})
+
+            transformed_data = {
+                "interactionType": index_defaults.get("interactionType", "1"), # Example default
+                "creationTime": creation_time,
+                "senderIdRootOid": index_defaults.get("senderIdRootOid"),
+                "senderIdExtension": index_defaults.get("senderIdExtension"),
+                "receiverIdRootOid": index_defaults.get("receiverIdRootOid"),
+                "receiverIdExtension": index_defaults.get("receiverIdExtension"),
+                "serviceEventType": index_defaults.get("serviceEventType", "1"), # Example default
+                "totalRecordCount": str(total_record_count)
+            }
+
+            missing_required_fields = [k for k,v in transformed_data.items() if v is None and k in ["senderIdRootOid", "senderIdExtension", "receiverIdRootOid", "receiverIdExtension"]]
+            if missing_required_fields:
+                logger.error(f"Missing required fields for index.xml from config's index_defaults: {missing_required_fields}")
+                return False
+
+            xml_string = generate_index_xml(transformed_data)
             is_valid, errors = validate_xml(xml_string, xsd_file_path)
-            if not is_valid: logger.error(f"summary.xml FAILED validation: {errors}"); return False
+            if not is_valid:
+                logger.error(f"Aggregated index.xml FAILED validation: {errors}")
+                # Optionally save the invalid XML for debugging
+                # with open(Path(output_xml_path).with_suffix(".invalid.xml"), "w", encoding="utf-8") as f_err: f_err.write(xml_string)
+                return False
+
             Path(output_xml_path).parent.mkdir(parents=True, exist_ok=True)
-            with open(output_xml_path, "w", encoding="utf-8") as f: f.write(xml_string)
-            logger.info(f"Wrote summary.xml to: {output_xml_path}")
+            with open(output_xml_path, "w", encoding="utf-8") as f:
+                f.write(xml_string)
+            logger.info(f"Successfully generated and validated aggregated index.xml: {output_xml_path}")
             return True
-        except Exception as e: logger.error(f"Error for summary.xml: {e}", exc_info=True); return False
+        except Exception as e:
+            logger.error(f"Error generating aggregated index.xml: {e}", exc_info=True)
+            return False
+
+    def generate_aggregated_summary_xml(self, claims_xml_files: List[str], data_xml_files: List[str], output_xml_path: str, xsd_file_path: str) -> bool:
+        logger.info(f"Generating aggregated summary.xml to {output_xml_path}")
+        try:
+            total_subject_count = 0
+            for cda_file in data_xml_files: # data_xml_files are CDA files (HC08, HG08)
+                total_subject_count += get_subject_count_from_cda(cda_file)
+
+            total_cost_amount = 0.0
+            total_payment_amount = 0.0 # Assuming payment = claim for now if not distinct
+            total_claim_amount = 0.0
+            total_payment_by_other_program = 0.0 # Assuming 0 for now
+
+            for claim_file in claims_xml_files:
+                # Determine if it's CC08 or GC08 by filename pattern or try parsing for specific roots
+                # For now, let's assume CC08 parsing can find amounts, and GC08 has its own.
+                # This part might need more robust type detection if filenames are not reliable.
+                amount_cc = get_claim_amount_from_cc08(claim_file)
+                if amount_cc is not None:
+                    total_claim_amount += amount_cc
+                    # Assuming cost and payment are same as claim for CC08 for this example
+                    total_cost_amount += amount_cc
+                    total_payment_amount += amount_cc
+                    logger.debug(f"Processed CC08 {claim_file}, amount: {amount_cc}")
+                    continue # Move to next file
+
+                amount_gc = get_claim_amount_from_gc08(claim_file)
+                if amount_gc is not None:
+                    total_claim_amount += amount_gc
+                    # Assuming cost and payment are same as claim for GC08
+                    total_cost_amount += amount_gc
+                    total_payment_amount += amount_gc
+                    logger.debug(f"Processed GC08 {claim_file}, amount: {amount_gc}")
+
+            summary_defaults = self.config.get("summary_defaults", {})
+            # Amounts in JPY are typically integers (no decimals) in XML.
+            # The generator expects strings for values in MO type.
+            transformed_data = {
+                "serviceEventTypeCode": summary_defaults.get("serviceEventTypeCode", "EVENT_CODE"), # Example
+                "serviceEventTypeCodeSystem": summary_defaults.get("serviceEventTypeCodeSystem", "EVENT_CS"), # Example
+                "serviceEventTypeDisplayName": summary_defaults.get("serviceEventTypeDisplayName", "Service Event"), # Example
+                "totalSubjectCount_value": str(total_subject_count),
+                "totalCostAmountValue": str(int(round(total_cost_amount))), # Round and convert to int, then str
+                "totalCostAmount_currency": "JPY",
+                "totalPaymentAmountValue": str(int(round(total_payment_amount))),
+                "totalPaymentAmount_currency": "JPY",
+                "totalClaimAmountValue": str(int(round(total_claim_amount))),
+                "totalClaimAmount_currency": "JPY",
+                "totalPaymentByOtherProgramValue": str(int(round(total_payment_by_other_program))),
+                "totalPaymentByOtherProgram_currency": "JPY",
+            }
+
+            # Handle case where totalPaymentByOtherProgram is zero and shouldn't be included
+            if int(round(total_payment_by_other_program)) == 0:
+                del transformed_data["totalPaymentByOtherProgramValue"]
+                del transformed_data["totalPaymentByOtherProgram_currency"]
+                # The generate_summary_xml also checks for `totalPaymentByOtherProgramValue` presence
+
+            xml_string = generate_summary_xml(transformed_data)
+            is_valid, errors = validate_xml(xml_string, xsd_file_path)
+            if not is_valid:
+                logger.error(f"Aggregated summary.xml FAILED validation: {errors}")
+                # with open(Path(output_xml_path).with_suffix(".invalid.xml"), "w", encoding="utf-8") as f_err: f_err.write(xml_string)
+                return False
+
+            Path(output_xml_path).parent.mkdir(parents=True, exist_ok=True)
+            with open(output_xml_path, "w", encoding="utf-8") as f:
+                f.write(xml_string)
+            logger.info(f"Successfully generated and validated aggregated summary.xml: {output_xml_path}")
+            return True
+        except Exception as e:
+            logger.error(f"Error generating aggregated summary.xml: {e}", exc_info=True)
+            return False
 
     def process_csv_to_health_checkup_cdas(self, csv_file_path: str, rules_file_path: str, xsd_file_path: str, output_xml_dir: str, output_file_prefix: str = "hc_cda_", csv_profile_name: str = "health_checkup_full") -> List[str]:
+        # This method and others below are not part of this subtask's changes but are kept.
+        # They might need future updates if their CSV parsing relies on the old parse_csv behavior
+        # or if they need to use the new parse_csv or parse_csv_from_profile.
         logger.info(f"Processing Health Checkup CDAs from {csv_file_path} using profile \"{csv_profile_name}\"")
         successful_files = []; parsed_data_rows_count = 0;
         try:
-            profile = self._get_csv_profile(csv_profile_name); parsed_data_rows = parse_csv(csv_file_path, profile=profile)
+            # Adapt to use parse_csv_from_profile
+            profile_params = self._get_csv_profile(csv_profile_name)
+            full_profile_for_parser = {
+                "source": csv_file_path,
+                "delimiter": profile_params.get("delimiter", ","),
+                "encoding": profile_params.get("encoding", "utf-8"),
+                # "header" is implicitly handled by parse_csv discovering the header line
+                "required_columns": profile_params.get("required_columns"), # Pass through if defined
+                "skip_comments": profile_params.get("skip_comments", True)   # Pass through if defined
+            }
+            parsed_data_rows = parse_csv_from_profile(full_profile_for_parser)
             parsed_data_rows_count = len(parsed_data_rows)
             if not parsed_data_rows: logger.error(f"No data from {csv_file_path}"); return []
             rules = load_rules(rules_file_path); Path(output_xml_dir).mkdir(parents=True, exist_ok=True)
@@ -118,7 +220,15 @@ class Orchestrator:
         logger.info(f"Processing Health Guidance CDAs from {csv_file_path} using profile \"{csv_profile_name}\"")
         successful_files = []; parsed_data_rows_count = 0;
         try:
-            profile = self._get_csv_profile(csv_profile_name); parsed_data_rows = parse_csv(csv_file_path, profile=profile)
+            profile_params = self._get_csv_profile(csv_profile_name)
+            full_profile_for_parser = {
+                "source": csv_file_path,
+                "delimiter": profile_params.get("delimiter", ","),
+                "encoding": profile_params.get("encoding", "utf-8"),
+                "required_columns": profile_params.get("required_columns"),
+                "skip_comments": profile_params.get("skip_comments", True)
+            }
+            parsed_data_rows = parse_csv_from_profile(full_profile_for_parser)
             parsed_data_rows_count = len(parsed_data_rows)
             if not parsed_data_rows: logger.error(f"No data from {csv_file_path}"); return []
             rules = load_rules(rules_file_path); Path(output_xml_dir).mkdir(parents=True, exist_ok=True)
@@ -144,7 +254,15 @@ class Orchestrator:
         logger.info(f"Processing Checkup Settlements from {csv_file_path} using profile \"{csv_profile_name}\"")
         successful_files = []; parsed_data_rows_count = 0;
         try:
-            profile = self._get_csv_profile(csv_profile_name); parsed_data_rows = parse_csv(csv_file_path, profile=profile)
+            profile_params = self._get_csv_profile(csv_profile_name)
+            full_profile_for_parser = {
+                "source": csv_file_path,
+                "delimiter": profile_params.get("delimiter", ","),
+                "encoding": profile_params.get("encoding", "utf-8"),
+                "required_columns": profile_params.get("required_columns"),
+                "skip_comments": profile_params.get("skip_comments", True)
+            }
+            parsed_data_rows = parse_csv_from_profile(full_profile_for_parser)
             parsed_data_rows_count = len(parsed_data_rows)
             if not parsed_data_rows: logger.error(f"No data from {csv_file_path}"); return []
             rules = load_rules(rules_file_path); Path(output_xml_dir).mkdir(parents=True, exist_ok=True)
@@ -174,7 +292,15 @@ class Orchestrator:
         logger.info(f"Processing Guidance Settlements from {csv_file_path} using profile \"{csv_profile_name}\"")
         successful_files = []; parsed_data_rows_count = 0;
         try:
-            profile = self._get_csv_profile(csv_profile_name); parsed_data_rows = parse_csv(csv_file_path, profile=profile)
+            profile_params = self._get_csv_profile(csv_profile_name)
+            full_profile_for_parser = {
+                "source": csv_file_path,
+                "delimiter": profile_params.get("delimiter", ","),
+                "encoding": profile_params.get("encoding", "utf-8"),
+                "required_columns": profile_params.get("required_columns"),
+                "skip_comments": profile_params.get("skip_comments", True)
+            }
+            parsed_data_rows = parse_csv_from_profile(full_profile_for_parser)
             parsed_data_rows_count = len(parsed_data_rows)
             if not parsed_data_rows: logger.error(f"No data from {csv_file_path}"); return []
             rules = load_rules(rules_file_path); Path(output_xml_dir).mkdir(parents=True, exist_ok=True)
