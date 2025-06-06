@@ -1,0 +1,46 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:mhlw="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000161103.html"
+           xmlns:dt="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000161103.html"
+           targetNamespace="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000161103.html"
+           elementFormDefault="qualified">
+
+  <xs:include schemaLocation="coreschemas/datatypes_hcgv08.xsd"/>
+
+  <xs:element name="checkupClaim">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="encounter" type="dt:textType" minOccurs="0"/> <!-- Placeholder: Real spec has more structure -->
+        <xs:element name="subjectPerson">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="patientId" type="dt:II"/>
+              <xs:element name="checkupOrgId" type="dt:II"/>
+              <xs:element name="insurerId" type="dt:II"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="checkupCard" minOccurs="0">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="copaymentType" type="dt:CD"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="settlement">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="claimType" type="dt:CD"/>
+              <xs:element name="commissionType" type="dt:CD" minOccurs="0"/>
+              <xs:element name="totalPoints" type="dt:INT" minOccurs="0"/>
+              <xs:element name="totalCost" type="dt:INT"/>
+              <xs:element name="copaymentAmount" type="dt:INT"/>
+              <xs:element name="claimAmount" type="dt:INT"/>
+              <!-- unitPriceDetail etc. omitted for this dummy XSD -->
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+      <xs:attribute name="docId" type="dt:textType" use="required"/>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

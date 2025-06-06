@@ -1,0 +1,20 @@
+<?xml version='1.0' encoding='utf-8'?>
+<checkupClaim xmlns="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000161103.html" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000161103.html cc08_V08.xsd" docId="CS_DOC_002">
+  <encounter>Checkup Encounter</encounter>
+  <subjectPerson>
+    <patientId root="1.2.392.200119.6.201"/>
+    <checkupOrgId root="1.2.392.200119.6.102" extension="ORG_CHK_002"/>
+    <insurerId root="1.2.392.200119.6.101" extension="INS002"/>
+  </subjectPerson>
+  <checkupCard>
+    <copaymentType code="2"/>
+  </checkupCard>
+  <settlement>
+    <claimType code="2"/>
+    <commissionType code="0"/>
+    <totalPoints value="1200"/>
+    <totalCost value="12000"/>
+    <copaymentAmount value="0"/>
+    <claimAmount value="12000"/>
+  </settlement>
+</checkupClaim>

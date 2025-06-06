@@ -1,0 +1,127 @@
+{
+  "paths": {
+    "xsd_schemas": "data/xsd_schemas/",
+    "input_csvs": "data/input_csvs/",
+    "output_xmls": "data/output_xmls/",
+    "xsd_source_path_for_archive": "data/xsd_schemas"
+  },
+  "logging": {
+    "log_file": "logs/app.log",
+    "log_level": "DEBUG"
+  },
+  "csv_profiles": {
+    "default": {
+      "delimiter": ",",
+      "encoding": "utf-8",
+      "header": true
+    },
+    "tokutei_kenshin_sample": {
+      "delimiter": ",",
+      "encoding": "shift_jis",
+      "header": true,
+      "columns": [
+        "ID",
+        "Date",
+        "SystolicBP",
+        "DiastolicBP"
+      ]
+    },
+    "index_profile": {
+      "delimiter": ",",
+      "encoding": "utf-8",
+      "header": true
+    },
+    "summary_profile": {
+      "delimiter": ",",
+      "encoding": "utf-8",
+      "header": true
+    },
+    "health_checkup_full": {
+      "delimiter": ",",
+      "encoding": "utf-8",
+      "header": true
+    },
+    "health_guidance_full": {
+      "delimiter": ",",
+      "encoding": "utf-8",
+      "header": true
+    },
+    "checkup_settlement": {
+      "delimiter": ",",
+      "encoding": "utf-8",
+      "header": true
+    },
+    "guidance_settlement": {
+      "delimiter": ",",
+      "encoding": "utf-8",
+      "header": true
+    },
+    "grouped_checkup_profile": {
+      "delimiter": ",",
+      "encoding": "utf-8",
+      "header": true
+    }
+  },
+  "rule_files": {
+    "index_rules": "config_rules/index_rules.json",
+    "summary_rules": "config_rules/summary_rules.json",
+    "health_checkup_full_rules": "config_rules/health_checkup_full_rules.json",
+    "health_guidance_full_rules": "config_rules/health_guidance_full_rules.json",
+    "checkup_settlement_rules": "config_rules/checkup_settlement_rules.json",
+    "guidance_settlement_rules": "config_rules/guidance_settlement_rules.json"
+  },
+  "xsd_files": {
+    "index_xsd": "ix08_V08.xsd",
+    "summary_xsd": "su08_V08.xsd",
+    "health_checkup_xsd": "hc08_V08.xsd",
+    "health_guidance_xsd": "hg08_V08.xsd",
+    "checkup_settlement_xsd": "cc08_V08.xsd",
+    "guidance_settlement_xsd": "gc08_V08.xsd"
+  },
+  "lookup_tables": {
+    "gender_map": {
+      "M": "Male",
+      "F": "Female",
+      "1": "Male",
+      "2": "Female",
+      "0": "Not Known",
+      "9": "Not Applicable"
+    },
+    "status_codes": {
+      "A": "Active",
+      "I": "Inactive",
+      "P": "Pending"
+    },
+    "oid_map": {
+      "patientIdMrnRootOid": "1.2.392.200119.6.201",
+      "patientIdInsuranceNoRootOid": "1.2.392.200119.6.203",
+      "authorIdRootOid": "1.2.392.200119.6.102",
+      "custodianIdRootOid": "1.2.392.200119.6.102",
+      "documentIdRootOid": "1.2.392.200119.6.1.4"
+    },
+    "smoking_status_map": {
+      "1": "\u73fe\u5728\u7fd2\u6163\u7684\u306b\u55ab\u7159\u3057\u3066\u3044\u308b",
+      "2": "\u73fe\u5728\u7fd2\u6163\u7684\u306b\u306f\u55ab\u7159\u3057\u3066\u3044\u306a\u3044\u304c\u3001\u904e\u53bb\u306b\u7fd2\u6163\u7684\u306b\u55ab\u7159\u3057\u3066\u3044\u305f",
+      "3": "\u904e\u53bb\u306b\u7fd2\u6163\u7684\u306b\u55ab\u7159\u3057\u305f\u3053\u3068\u306f\u306a\u3044",
+      "9": "\u4e0d\u660e"
+    },
+    "hg_classification_map": {
+      "1": "\u7a4d\u6975\u7684\u652f\u63f4",
+      "2": "\u52d5\u6a5f\u3065\u3051\u652f\u63f4",
+      "3": "\u60c5\u5831\u63d0\u4f9b"
+    },
+    "bhv_change_stage_map": {
+      "1": "\u7121\u95a2\u5fc3\u671f",
+      "2": "\u95a2\u5fc3\u671f",
+      "3": "\u6e96\u5099\u671f",
+      "4": "\u5b9f\u884c\u671f",
+      "5": "\u7dad\u6301\u671f"
+    }
+  },
+  "oid_catalog_file": "config_rules/oid_catalog.json",
+  "document_defaults": {
+    "guidance_settlement": {
+      "documentIdRootOid": "1.2.392.200119.6.1.GC.DEFAULT"
+    }
+  }
+}

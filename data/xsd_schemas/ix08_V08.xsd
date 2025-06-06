@@ -1,0 +1,59 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:mhlw="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000161103.html"
+           xmlns:dt="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000161103.html"
+           targetNamespace="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000161103.html"
+           elementFormDefault="qualified">
+
+  <xs:include schemaLocation="coreschemas/datatypes_hcgv08.xsd"/>
+
+  <xs:element name="index">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="interactionType">
+          <xs:complexType>
+            <xs:attribute name="code" type="dt:codeType" use="required"/>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="creationTime">
+          <xs:complexType>
+            <xs:attribute name="value" type="dt:dateType" use="required"/>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="sender">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="id">
+                <xs:complexType>
+                  <xs:attribute name="root" type="dt:textType" use="required"/>
+                  <xs:attribute name="extension" type="dt:textType" use="required"/>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="receiver"> <!-- Moved before totalRecordCount -->
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="id">
+                <xs:complexType>
+                  <xs:attribute name="root" type="dt:textType" use="required"/>
+                  <xs:attribute name="extension" type="dt:textType" use="required"/>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="serviceEventType"> <!-- Moved before totalRecordCount -->
+          <xs:complexType>
+            <xs:attribute name="code" type="dt:codeType" use="required"/>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="totalRecordCount">
+          <xs:complexType>
+            <xs:attribute name="value" type="dt:countType" use="required"/>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

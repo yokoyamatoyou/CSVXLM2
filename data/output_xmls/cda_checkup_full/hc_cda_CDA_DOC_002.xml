@@ -1,0 +1,64 @@
+<?xml version='1.0' encoding='utf-8'?>
+<ClinicalDocument xmlns="urn:hl7-org:v3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:dt="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000161103.html" xsi:schemaLocation="urn:hl7-org:v3 hc08_V08.xsd https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000161103.html coreschemas/datatypes_hcgv08.xsd">
+  <typeId root="2.16.840.1.113883.1.3" extension="POCD_HD000040"/>
+  <id root="1.2.392.200119.6.1.4" extension="CDA_DOC_002"/>
+  <code code="10" codeSystem="1.2.392.200119.6.1001" displayName="特定健診情報"/>
+  <title>特定健診結果報告書</title>
+  <effectiveTime value="20230615"/>
+  <confidentialityCode code="N" codeSystem="2.16.840.1.113883.5.25"/>
+  <languageCode code="ja-JP"/>
+  <recordTarget>
+    <patientRole>
+      <id root="1.2.392.200119.6.201" extension="P002"/>
+      <id root="1.2.392.200119.6.203" extension="INS002"/>
+      <patient>
+        <name>
+          <dt:family>Shido</dt:family>
+          <dt:given>Hanako</dt:given>
+        </name>
+        <administrativeGenderCode code="Female" codeSystem="1.2.392.200119.6.1104"/>
+        <birthTime value="19850312"/>
+      </patient>
+    </patientRole>
+  </recordTarget>
+  <author>
+    <assignedAuthor>
+      <id root="1.2.392.200119.6.102" extension="AUTH_CLINIC"/>
+    </assignedAuthor>
+  </author>
+  <custodian>
+    <assignedCustodian>
+      <representedCustodianOrganization>
+        <id root="1.2.392.200119.6.102" extension="CUST_CLINIC"/>
+      </representedCustodianOrganization>
+    </assignedCustodian>
+  </custodian>
+  <documentationOf>
+    <serviceEvent>
+      <effectiveTime value="20230601"/>
+    </serviceEvent>
+  </documentationOf>
+  <component typeCode="COMP">
+    <structuredBody>
+      <component>
+        <section>
+          <code code=""/>
+          <title>検査・問診結果</title>
+          <text>特定健診の検査結果を以下に示す。</text>
+          <entry typeCode="DRIV">
+            <observation classCode="OBS" moodCode="EVN">
+              <code code=""/>
+              <value xsi:type="dt:PQ" value="160" unit="cm"/>
+            </observation>
+          </entry>
+          <entry typeCode="DRIV">
+            <observation classCode="OBS" moodCode="EVN">
+              <code code=""/>
+              <value xsi:type="dt:PQ" value="55" unit="kg"/>
+            </observation>
+          </entry>
+        </section>
+      </component>
+    </structuredBody>
+  </component>
+</ClinicalDocument>

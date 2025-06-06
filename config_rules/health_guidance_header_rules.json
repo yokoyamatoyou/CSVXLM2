@@ -1,0 +1,48 @@
+[
+  {"rule_type": "default_value", "output_field": "docIdRootKey", "value": "DocumentId.Root.SpecificHealthGuidanceInstance"},
+  {"rule_type": "lookup_value", "input_field": "docIdRootKey", "lookup_table_name": "$oid_catalog$", "output_field": "documentIdRootOid"},
+  {"rule_type": "direct_mapping", "input_field": "doc_id", "output_field": "documentIdExtension"},
+
+  {"rule_type": "default_value", "output_field": "docTypeCodeKey", "value": "DocumentTypeCode.SpecificHealthGuidance"},
+  {"rule_type": "lookup_value", "input_field": "docTypeCodeKey", "lookup_table_name": "$oid_catalog$", "output_field": "documentTypeCode"},
+  {"rule_type": "default_value", "output_field": "docTypeCodeSystemKey", "value": "DocumentTypeCodeSystem.MHLW"},
+  {"rule_type": "lookup_value", "input_field": "docTypeCodeSystemKey", "lookup_table_name": "$oid_catalog$", "output_field": "documentTypeCodeSystem"},
+  {"rule_type": "default_value", "output_field": "documentTypeDisplayName", "value": "特定保健指導情報"},
+
+  {"rule_type": "data_type_conversion", "input_field": "doc_creation_date", "output_field": "documentEffectiveTime", "conversion_type": "to_date_yyyymmdd"},
+  {"rule_type": "direct_mapping", "input_field": "guidance_program_name", "output_field": "documentTitle"},
+
+  {"rule_type": "default_value", "output_field": "typeIdRootKey", "value": "TypeId.Root.CDA"},
+  {"rule_type": "lookup_value", "input_field": "typeIdRootKey", "lookup_table_name": "$oid_catalog$", "output_field": "typeIdRoot"},
+  {"rule_type": "default_value", "output_field": "typeIdExtensionKey", "value": "TypeId.Extension.POCD_HD000040"},
+  {"rule_type": "lookup_value", "input_field": "typeIdExtensionKey", "lookup_table_name": "$oid_catalog$", "output_field": "typeIdExtension"},
+  {"rule_type": "default_value", "output_field": "confidentialityCodeKey", "value": "ConfidentialityCode.Normal"},
+  {"rule_type": "lookup_value", "input_field": "confidentialityCodeKey", "lookup_table_name": "$oid_catalog$", "output_field": "confidentialityCode"},
+  {"rule_type": "default_value", "output_field": "confidentialityCodeSystemKey", "value": "ConfidentialityCodeSystem.HL7"},
+  {"rule_type": "lookup_value", "input_field": "confidentialityCodeSystemKey", "lookup_table_name": "$oid_catalog$", "output_field": "confidentialityCodeSystem"},
+  {"rule_type": "default_value", "output_field": "languageCodeKey", "value": "LanguageCode.Japanese"},
+  {"rule_type": "lookup_value", "input_field": "languageCodeKey", "lookup_table_name": "$oid_catalog$", "output_field": "languageCode"},
+
+  {"rule_type": "default_value", "output_field": "patientIdMrnRootKey", "value": "PatientIdType.MRN.JP"},
+  {"rule_type": "lookup_value", "input_field": "patientIdMrnRootKey", "lookup_table_name": "$oid_catalog$", "output_field": "patientIdMrnRootOid"},
+  {"rule_type": "direct_mapping", "input_field": "patient_mrn", "output_field": "patientIdMrnExtension"},
+  {"rule_type": "default_value", "output_field": "patientIdInsRootKey", "value": "PatientIdType.InsuranceNo.JP"},
+  {"rule_type": "lookup_value", "input_field": "patientIdInsRootKey", "lookup_table_name": "$oid_catalog$", "output_field": "patientIdInsuranceNoRootOid"},
+  {"rule_type": "direct_mapping", "input_field": "patient_insurance_no", "output_field": "patientIdInsuranceNoExtension"},
+  {"rule_type": "direct_mapping", "input_field": "patient_family_name", "output_field": "patientNameFamily"},
+  {"rule_type": "direct_mapping", "input_field": "patient_given_name", "output_field": "patientNameGiven"},
+  {"rule_type": "lookup_value", "input_field": "patient_gender_csv", "lookup_table_name": "gender_map", "output_field": "patientGenderCode", "default_on_miss": "9"},
+  {"rule_type": "default_value", "output_field": "patientGenderCodeSystemKey", "value": "Gender.CodeSystem.JP"},
+  {"rule_type": "lookup_value", "input_field": "patientGenderCodeSystemKey", "lookup_table_name": "$oid_catalog$", "output_field": "patientGenderCodeSystem"},
+  {"rule_type": "data_type_conversion", "input_field": "patient_birth_date", "output_field": "patientBirthTimeValue", "conversion_type": "to_date_yyyymmdd"},
+
+  {"rule_type": "default_value", "output_field": "authorIdRootKey", "value": "Author.IdRoot.HealthGuidanceOrg.JP"},
+  {"rule_type": "lookup_value", "input_field": "authorIdRootKey", "lookup_table_name": "$oid_catalog$", "output_field": "authorIdRootOid"},
+  {"rule_type": "direct_mapping", "input_field": "author_institution_id", "output_field": "authorIdExtension"},
+  {"rule_type": "default_value", "output_field": "custodianIdRootKey", "value": "Custodian.IdRoot.HealthGuidanceOrg.JP"},
+  {"rule_type": "lookup_value", "input_field": "custodianIdRootKey", "lookup_table_name": "$oid_catalog$", "output_field": "custodianIdRootOid"},
+  {"rule_type": "direct_mapping", "input_field": "custodian_institution_id", "output_field": "custodianIdExtension"},
+
+  {"rule_type": "data_type_conversion", "input_field": "guidance_start_date", "output_field": "serviceEventEffectiveTimeLow", "conversion_type": "to_date_yyyymmdd"},
+  {"rule_type": "data_type_conversion", "input_field": "guidance_end_date", "output_field": "serviceEventEffectiveTimeHigh", "conversion_type": "to_date_yyyymmdd"}
+]

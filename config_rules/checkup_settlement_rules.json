@@ -1,0 +1,19 @@
+[
+  {"rule_type": "direct_mapping", "input_field": "doc_id", "output_field": "documentId"},
+  {"rule_type": "direct_mapping", "input_field": "patient_mrn", "output_field": "patientIdMrn"},
+  {"rule_type": "default_value", "output_field": "patientIdMrnRootKey", "value": "PatientIdType.MRN.JP"},
+  {"rule_type": "lookup_value", "input_field": "patientIdMrnRootKey", "lookup_table_name": "$oid_catalog$", "output_field": "patientIdMrnRootOid"},
+  {"rule_type": "direct_mapping", "input_field": "checkup_org_code", "output_field": "checkupOrgIdExtension"},
+  {"rule_type": "default_value", "output_field": "checkupOrgIdRootKey", "value": "Author.IdRoot.HealthCheckupOrg.JP"},
+  {"rule_type": "lookup_value", "input_field": "checkupOrgIdRootKey", "lookup_table_name": "$oid_catalog$", "output_field": "checkupOrgIdRootOid"},
+  {"rule_type": "direct_mapping", "input_field": "insurer_no", "output_field": "insurerIdExtension"},
+  {"rule_type": "default_value", "output_field": "insurerIdRootKey", "value": "Insurer.IdRoot.JP"},
+  {"rule_type": "lookup_value", "input_field": "insurerIdRootKey", "lookup_table_name": "$oid_catalog$", "output_field": "insurerIdRootOid"},
+  {"rule_type": "direct_mapping", "input_field": "copayment_type_code", "output_field": "copaymentTypeCode"},
+  {"rule_type": "direct_mapping", "input_field": "claim_type_code", "output_field": "claimTypeCode"},
+  {"rule_type": "direct_mapping", "input_field": "commission_type_code", "output_field": "commissionTypeCode"},
+  {"rule_type": "data_type_conversion", "input_field": "total_points", "output_field": "totalPointsValue", "conversion_type": "to_integer"},
+  {"rule_type": "data_type_conversion", "input_field": "total_cost", "output_field": "totalCostValue", "conversion_type": "to_integer"},
+  {"rule_type": "data_type_conversion", "input_field": "copayment_amount", "output_field": "copaymentAmountValue", "conversion_type": "to_integer"},
+  {"rule_type": "data_type_conversion", "input_field": "claim_amount", "output_field": "claimAmountValue", "conversion_type": "to_integer"}
+]

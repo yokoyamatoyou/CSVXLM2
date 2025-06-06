@@ -1,0 +1,3 @@
+doc_id,doc_creation_date,patient_mrn,patient_insurance_no,patient_family_name,patient_given_name,patient_gender,patient_birth_date,author_institution_id,custodian_institution_id,checkup_start_date,checkup_end_date
+A0000001,2023/10/26,P12345,INS9876,山田,太郎,1,1980/05/15,AUTH_ID_001,CUST_ID_001,2023/10/01,2023/10/01
+A0000002,2023/11/01,P67890,INS1234,佐藤,花子,2,1992/03/08,AUTH_ID_002,CUST_ID_002,2023/10/15,2023/10/15

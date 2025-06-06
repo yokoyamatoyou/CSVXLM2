@@ -1,0 +1,58 @@
+[
+  {
+    "rule_type": "direct_mapping",
+    "input_field": "service_event_type_code",
+    "output_field": "serviceEventType_code"
+  },
+  {
+    "rule_type": "data_type_conversion",
+    "input_field": "subject_count",
+    "output_field": "totalSubjectCount_value",
+    "conversion_type": "to_integer"
+  },
+  {
+    "rule_type": "data_type_conversion",
+    "input_field": "total_cost",
+    "output_field": "totalCostAmount_value",
+    "conversion_type": "to_integer"
+  },
+  {
+    "rule_type": "default_value",
+    "output_field": "totalCostAmount_currency",
+    "value": "JPY"
+  },
+  {
+    "rule_type": "data_type_conversion",
+    "input_field": "payment_amount",
+    "output_field": "totalPaymentAmount_value",
+    "conversion_type": "to_integer"
+  },
+  {
+    "rule_type": "default_value",
+    "output_field": "totalPaymentAmount_currency",
+    "value": "JPY"
+  },
+  {
+    "rule_type": "data_type_conversion",
+    "input_field": "claim_amount",
+    "output_field": "totalClaimAmount_value",
+    "conversion_type": "to_integer"
+  },
+  {
+    "rule_type": "default_value",
+    "output_field": "totalClaimAmount_currency",
+    "value": "JPY"
+  },
+  {
+    "rule_type": "data_type_conversion",
+    "input_field": "optional_other_payment",
+    "output_field": "totalPaymentByOtherProgram_value",
+    "conversion_type": "to_integer"
+  },
+  {
+    "rule_type": "default_value",
+    "input_field": "optional_other_payment",
+    "output_field": "totalPaymentByOtherProgram_currency",
+    "value": "JPY"
+  }
+]

@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<summary xmlns="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000161103.html" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000161103.html su08_V08.xsd">
+  <serviceEventType code=""/>
+  <totalSubjectCount value="150"/>
+  <totalCostAmount value="1234500" currency="JPY"/>
+  <totalPaymentAmount value="65000" currency="JPY"/>
+  <totalClaimAmount value="1169500" currency="JPY"/>
+</summary>

@@ -1,0 +1,3 @@
+doc_id,patient_mrn,checkup_org_code,insurer_no,claim_type_code,commission_type_code,copayment_type_code,total_points,total_cost,copayment_amount,claim_amount
+CS_DOC_001,P001,ORG_CHK_001,INS001,1,1,1,1500,15000,1500,13500
+CS_DOC_002,P002,ORG_CHK_002,INS002,2,0,2,1200,12000,0,12000
