@@ -4,6 +4,7 @@ Orchestrates the CSV to XML conversion process for all document types.
 """
 
 import logging; import json; from typing import Dict, Any, List, Optional; import os; from lxml import etree; import zipfile; import shutil; from datetime import datetime, timezone; from pathlib import Path
+import tempfile # Added import
 
 from ..csv_parser import parse_csv, parse_csv_from_profile # CSVParsingError not used directly in this file after changes
 from ..rule_engine import load_rules, apply_rules # RuleApplicationError not used directly
@@ -349,7 +350,18 @@ class Orchestrator:
                                   data_xml_files: List[str], claims_xml_files: List[str],
                                   archive_base_name: str, archive_output_dir: str) -> Optional[str]:
         logger.info(f"Creating archive: {archive_base_name}.zip in {archive_output_dir}")
-        xsd_src = Path(self.config.get("paths", {}).get("xsd_source_path_for_archive", "data/xsd_schemas"))
+
+        xsd_source_paths_config = self.config.get("paths", {}).get("xsd_source_path_for_archive")
+        xsd_source_paths: List[Path] = []
+
+        if isinstance(xsd_source_paths_config, str):
+            xsd_source_paths = [Path(xsd_source_paths_config)]
+        elif isinstance(xsd_source_paths_config, list):
+            xsd_source_paths = [Path(p) for p in xsd_source_paths_config]
+        else:
+            logger.warning("`xsd_source_path_for_archive` in config not found or not a string/list. Defaulting to 'data/xsd_schemas/' for archive XSDs.")
+            xsd_source_paths = [Path("data/xsd_schemas")]
+
         temp_build_parent_dir = Path(archive_output_dir) / f"_temp_build_{archive_base_name}_{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
         tmp_root = temp_build_parent_dir / archive_base_name
         final_zip = Path(archive_output_dir) / f"{archive_base_name}.zip"
@@ -374,13 +386,35 @@ class Orchestrator:
                 if fp.exists(): shutil.copy2(fp, c_dir / fp.name)
                 else: logger.warning(f"Claim file {fp} not found.")
 
-            if xsd_src.exists() and xsd_src.is_dir():
-                for item in xsd_src.iterdir():
-                    if item.is_file() and item.name.endswith(".xsd"): shutil.copy2(item, x_dir / item.name)
-                    elif item.is_dir() and item.name == "coreschemas":
-                        for ci in item.iterdir():
-                            if ci.is_file() and ci.name.endswith(".xsd"): shutil.copy2(ci, xc_dir / ci.name)
-            else: logger.warning(f"XSD source dir {xsd_src} not found. XSDs not added.")
+
+            copied_xsd_files = set() # To keep track of copied XSDs and avoid redundant logging for coreschemas
+            for xsd_src_path in xsd_source_paths:
+                logger.info(f"Processing XSD source path for archive: {xsd_src_path}")
+                if xsd_src_path.exists() and xsd_src_path.is_dir():
+                    # Copy main XSDs
+                    for item in xsd_src_path.iterdir():
+                        if item.is_file() and item.name.lower().endswith(".xsd"):
+                            target_file = x_dir / item.name
+                            shutil.copy2(item, target_file)
+                            copied_xsd_files.add(item.name)
+                            logger.debug(f"Copied XSD: {item} to {target_file}")
+
+                    # Copy coreschemas
+                    core_schemas_dir = xsd_src_path / "coreschemas"
+                    if core_schemas_dir.exists() and core_schemas_dir.is_dir():
+                        for core_item in core_schemas_dir.iterdir():
+                            if core_item.is_file() and core_item.name.lower().endswith(".xsd"):
+                                target_core_file = xc_dir / core_item.name
+                                shutil.copy2(core_item, target_core_file)
+                                # No need to add to copied_xsd_files for this check, already covered if it's a main xsd
+                                logger.debug(f"Copied core schema XSD: {core_item} to {target_core_file}")
+                    # else: # Logging for missing coreschemas can be verbose if many paths are checked
+                        # logger.debug(f"Coreschemas directory not found in {xsd_src_path}, or not a directory.")
+                else:
+                    logger.warning(f"XSD source directory {xsd_src_path} not found or not a directory. Skipping.")
+
+            if not copied_xsd_files and not xc_dir.exists() or (xc_dir.exists() and not any(xc_dir.iterdir())) : # Check if anything was actually copied to XSD or XSD/coreschemas
+                 logger.warning(f"No XSD files or coreschemas were copied to the archive from configured paths: {xsd_source_paths}")
 
             final_zip.parent.mkdir(parents=True, exist_ok=True)
             with zipfile.ZipFile(final_zip, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -404,3 +438,123 @@ class Orchestrator:
             if temp_build_parent_dir.exists():
                 try: shutil.rmtree(temp_build_parent_dir); logger.debug(f"Cleaned temp dir: {temp_build_parent_dir}")
                 except Exception as e_clean: logger.error(f"Error cleaning temp dir {temp_build_parent_dir}: {e_clean}")
+
+    def verify_archive_contents(self, zip_archive_path: str) -> bool:
+        logger.info(f"Verifying contents of archive: {zip_archive_path}")
+        temp_dir_obj = tempfile.TemporaryDirectory(prefix="zip_verify_")
+        temp_dir_path = Path(temp_dir_obj.name)
+        all_valid = True
+
+        try:
+            logger.debug(f"Extracting archive to temporary directory: {temp_dir_path}")
+            with zipfile.ZipFile(zip_archive_path, 'r') as zip_ref:
+                zip_ref.extractall(temp_dir_path)
+
+            # Define XSD and XML file locations within the extracted archive
+            extracted_xsd_base_path = temp_dir_path / Path(zip_archive_path).stem / "XSD" # Path includes archive name folder
+            xml_files_to_validate = []
+
+            archive_content_root = temp_dir_path / Path(zip_archive_path).stem
+
+            # index.xml
+            index_xml_file = archive_content_root / "index.xml"
+            if index_xml_file.exists():
+                xml_files_to_validate.append({"path": index_xml_file, "xsd_name": "ix08_V08.xsd", "type": "Index"})
+            else:
+                logger.error(f"index.xml not found in archive at expected location: {index_xml_file}")
+                all_valid = False
+
+            # summary.xml
+            summary_xml_file = archive_content_root / "summary.xml"
+            if summary_xml_file.exists():
+                xml_files_to_validate.append({"path": summary_xml_file, "xsd_name": "su08_V08.xsd", "type": "Summary"})
+            else:
+                logger.error(f"summary.xml not found in archive at expected location: {summary_xml_file}")
+                all_valid = False
+
+            # Files in DATA/ directory
+            data_dir = archive_content_root / "DATA"
+            if data_dir.is_dir():
+                for item in data_dir.iterdir():
+                    if item.is_file() and item.name.lower().endswith(".xml"):
+                        xsd_name = None
+                        file_type = "Unknown DATA"
+                        if item.name.startswith("hc_cda_"): # Health Checkup CDA
+                            xsd_name = "hc08_V08.xsd"; file_type = "Health Checkup CDA"
+                        elif item.name.startswith("hg_cda_"): # Health Guidance CDA
+                            xsd_name = "hg08_V08.xsd"; file_type = "Health Guidance CDA"
+
+                        if xsd_name:
+                            xml_files_to_validate.append({"path": item, "xsd_name": xsd_name, "type": file_type})
+                        else:
+                            logger.warning(f"Could not determine XSD for DATA file: {item.name}")
+
+            # Files in CLAIMS/ directory
+            claims_dir = archive_content_root / "CLAIMS"
+            if claims_dir.is_dir():
+                for item in claims_dir.iterdir():
+                    if item.is_file() and item.name.lower().endswith(".xml"):
+                        xsd_name = None
+                        file_type = "Unknown CLAIM"
+                        if item.name.startswith("cs_"): # Checkup Settlement
+                            xsd_name = "cc08_V08.xsd"; file_type = "Checkup Settlement"
+                        elif item.name.startswith("gs_"): # Guidance Settlement
+                            xsd_name = "gc08_V08.xsd"; file_type = "Guidance Settlement"
+
+                        if xsd_name:
+                            xml_files_to_validate.append({"path": item, "xsd_name": xsd_name, "type": file_type})
+                        else:
+                            logger.warning(f"Could not determine XSD for CLAIMS file: {item.name}")
+
+            # Perform validation for all collected XML files
+            for xml_info in xml_files_to_validate:
+                xml_file_path = xml_info["path"]
+                xsd_file_name = xml_info["xsd_name"]
+                file_type_desc = xml_info["type"]
+
+                xsd_path_in_archive = extracted_xsd_base_path / xsd_file_name
+
+                if not xsd_path_in_archive.exists():
+                    logger.error(f"XSD file '{xsd_file_name}' not found in archive's XSD directory ({extracted_xsd_base_path}) for {file_type_desc} '{xml_file_path.name}'. Skipping validation.")
+                    all_valid = False
+                    continue
+
+                try:
+                    logger.info(f"Validating {file_type_desc}: {xml_file_path.name} against {xsd_path_in_archive.name}")
+                    xml_content = xml_file_path.read_text(encoding="utf-8")
+                    # Assuming validate_xml can take a Path object for xsd_path directly or string path
+                    is_valid, errors = validate_xml(xml_content, str(xsd_path_in_archive))
+                    if is_valid:
+                        logger.info(f"OK: {file_type_desc} '{xml_file_path.name}' is valid against '{xsd_path_in_archive.name}'.")
+                    else:
+                        all_valid = False
+                        logger.error(f"FAIL: {file_type_desc} '{xml_file_path.name}' is invalid against '{xsd_path_in_archive.name}'. Errors: {errors}")
+                except Exception as e:
+                    all_valid = False
+                    logger.error(f"Error validating {file_type_desc} '{xml_file_path.name}': {e}", exc_info=True)
+
+            if not xml_files_to_validate and all_valid:
+                logger.warning(f"No XML files were found or mapped for validation in archive {zip_archive_path}.")
+                # If the archive is expected to have specific files (like index.xml, summary.xml),
+                # their absence (already flagged by all_valid = False) would make this an error state.
+                # If an empty valid archive is possible, this warning is fine.
+
+
+        except FileNotFoundError:
+            logger.error(f"Archive not found: {zip_archive_path}")
+            all_valid = False
+        except zipfile.BadZipFile:
+            logger.error(f"Invalid or corrupted ZIP file: {zip_archive_path}")
+            all_valid = False
+        except Exception as e:
+            logger.error(f"An unexpected error occurred during archive verification: {e}", exc_info=True)
+            all_valid = False
+        finally:
+            logger.debug(f"Cleaning up temporary directory: {temp_dir_path}")
+            temp_dir_obj.cleanup()
+
+        if all_valid:
+            logger.info(f"All XML files in archive '{zip_archive_path}' successfully validated against their XSDs from within the archive.")
+        else:
+            logger.error(f"One or more XML files in archive '{zip_archive_path}' failed validation or were missing.")
+        return all_valid

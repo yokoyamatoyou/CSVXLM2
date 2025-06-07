@@ -4,10 +4,13 @@ XML Generator with entryRelationship support for CDA and restored full generator
 """
 from lxml import etree
 from typing import Dict, Any, Optional, List
-import os
+import os # Make sure os is imported
 import sys
 import uuid
 import logging
+
+logger = logging.getLogger(__name__)
+logger.info(f"xml_generator/__init__.py loaded from: {os.path.abspath(__file__)}")
 
 # Import the new parsing utilities so they are accessible via the package
 from . import xml_parsing_utils
@@ -114,53 +117,84 @@ def generate_summary_xml(transformed_data: Dict[str, Any]) -> str:
     return etree.tostring(root, pretty_print=True, xml_declaration=True, encoding="utf-8").decode("utf-8")
 
 def _populate_cda_header(doc: etree._Element, transformed_data: Dict[str, Any], document_profile_type: Optional[str] = None):
-    _create_ii_element(doc, "typeId", transformed_data, "typeId")
-    _create_ii_element(doc, "id", transformed_data, "documentId")
-    _create_cd_element(doc, "code", transformed_data, "documentType")
-    etree.SubElement(doc, "title").text = _str_or_default(transformed_data.get("documentTitle"))
-    etree.SubElement(doc, "effectiveTime").set("value", _str_or_default(transformed_data.get("documentEffectiveTime")))
-    _create_cd_element(doc, "confidentialityCode", transformed_data, "confidentiality")
-    etree.SubElement(doc, "languageCode").set("code", _str_or_default(transformed_data.get("languageCode"), "ja-JP"))
+    logger.debug(f"Entering _populate_cda_header for profile: {document_profile_type}. Data keys: {list(transformed_data.keys())}")
+    try:
+        _create_ii_element(doc, "typeId", transformed_data, "typeId")
+        _create_ii_element(doc, "id", transformed_data, "documentId")
+        _create_cd_element(doc, "code", transformed_data, "documentType")
+        etree.SubElement(doc, "title").text = _str_or_default(transformed_data.get("documentTitle"))
+        etree.SubElement(doc, "effectiveTime").set("value", _str_or_default(transformed_data.get("documentEffectiveTime")))
+        _create_cd_element(doc, "confidentialityCode", transformed_data, "confidentiality")
+        etree.SubElement(doc, "languageCode").set("code", _str_or_default(transformed_data.get("languageCode"), "ja-JP"))
 
-    rt_el = etree.SubElement(doc, "recordTarget"); pr_el = etree.SubElement(rt_el, "patientRole")
-    _create_ii_element(pr_el, "id", transformed_data, "patientIdMrn")
-    if transformed_data.get("patientIdInsuranceNoRootOid") or transformed_data.get("patientIdInsuranceNoExtension"):
-        _create_ii_element(pr_el, "id", transformed_data, "patientIdInsuranceNo")
-    patient_el = etree.SubElement(pr_el, "patient")
-    name_el = etree.SubElement(patient_el, "name")
-    etree.SubElement(name_el, f"{{{MHLW_NS_URL}}}family").text = _str_or_default(transformed_data.get("patientNameFamily"))
-    etree.SubElement(name_el, f"{{{MHLW_NS_URL}}}given").text = _str_or_default(transformed_data.get("patientNameGiven"))
-    _create_cd_element(patient_el, "administrativeGenderCode", transformed_data, "patientGender")
-    etree.SubElement(patient_el, "birthTime").set("value", _str_or_default(transformed_data.get("patientBirthTimeValue")))
+        rt_el = etree.SubElement(doc, "recordTarget"); pr_el = etree.SubElement(rt_el, "patientRole")
+        _create_ii_element(pr_el, "id", transformed_data, "patientIdMrn")
+        if transformed_data.get("patientIdInsuranceNoRootOid") or transformed_data.get("patientIdInsuranceNoExtension"):
+            _create_ii_element(pr_el, "id", transformed_data, "patientIdInsuranceNo")
+        patient_el = etree.SubElement(pr_el, "patient")
+        name_el = etree.SubElement(patient_el, "name")
+        etree.SubElement(name_el, f"{{{MHLW_NS_URL}}}family").text = _str_or_default(transformed_data.get("patientNameFamily"))
+        etree.SubElement(name_el, f"{{{MHLW_NS_URL}}}given").text = _str_or_default(transformed_data.get("patientNameGiven"))
+        _create_cd_element(patient_el, "administrativeGenderCode", transformed_data, "patientGender")
+        etree.SubElement(patient_el, "birthTime").set("value", _str_or_default(transformed_data.get("patientBirthTimeValue")))
 
-    auth_el = etree.SubElement(doc, "author"); asgn_auth_el = etree.SubElement(auth_el, "assignedAuthor")
-    _create_ii_element(asgn_auth_el, "id", transformed_data, "authorId")
+        auth_el = etree.SubElement(doc, "author"); asgn_auth_el = etree.SubElement(auth_el, "assignedAuthor")
+        _create_ii_element(asgn_auth_el, "id", transformed_data, "authorId")
 
-    cust_el = etree.SubElement(doc, "custodian"); asgn_cust_el = etree.SubElement(cust_el, "assignedCustodian")
-    rep_cust_org_el = etree.SubElement(asgn_cust_el, "representedCustodianOrganization")
-    _create_ii_element(rep_cust_org_el, "id", transformed_data, "custodianId")
+        cust_el = etree.SubElement(doc, "custodian"); asgn_cust_el = etree.SubElement(cust_el, "assignedCustodian")
+        rep_cust_org_el = etree.SubElement(asgn_cust_el, "representedCustodianOrganization")
+        _create_ii_element(rep_cust_org_el, "id", transformed_data, "custodianId")
 
-    # documentationOf block with conditional namespacing for low/high
-    doc_of_el = etree.SubElement(doc, "documentationOf")
-    se_el = etree.SubElement(doc_of_el, "serviceEvent")
+        # Moved documentationOf block to the end of header population, before exception handling # This comment is now outdated. documentationOf is after custodian.
 
-    se_eff_time_el = etree.SubElement(se_el, "effectiveTime")
-    low_val = transformed_data.get("serviceEventEffectiveTimeLow")
-    high_val = transformed_data.get("serviceEventEffectiveTimeHigh")
+        if document_profile_type != "HC08": # Skip documentationOf entirely for HC08
+            logger.debug(f"Profile {document_profile_type}: Generating documentationOf section.")
+            # --- documentationOf section START ---
+            doc_of_el = etree.SubElement(doc, "documentationOf")
 
-    if low_val and high_val and low_val == high_val:
-        se_eff_time_el.set("value", _str_or_default(low_val))
-    else:
-        if low_val is not None:
             if document_profile_type == "HG08":
-                etree.SubElement(se_eff_time_el, f"{{{MHLW_NS_URL}}}low").set("value", _str_or_default(low_val))
-            else:
-                etree.SubElement(se_eff_time_el, "low").set("value", _str_or_default(low_val))
-        if high_val is not None:
+                # For HG08, documentationOf has no typeCode as per previous findings
+                pass # No typeCode attribute
+            else: # For other profiles (if any in future) or a default if not HG08 (and not HC08)
+                doc_of_el.set("typeCode", "DOC")
+
+            se_el = etree.SubElement(doc_of_el, "serviceEvent")
             if document_profile_type == "HG08":
-                etree.SubElement(se_eff_time_el, f"{{{MHLW_NS_URL}}}high").set("value", _str_or_default(high_val))
+                # For HG08, serviceEvent has no classCode/moodCode as per previous findings
+                pass # No classCode or moodCode attributes
+            else: # For other profiles or a default (and not HC08)
+                se_el.set("classCode", "ACT")
+                se_el.set("moodCode", "EVN")
+
+            # Optional: Add id to serviceEvent (still commented as per previous findings)
+            # _create_ii_element(se_el, "id", transformed_data, "serviceEventId")
+
+            se_eff_time_el = etree.SubElement(se_el, "effectiveTime")
+            low_val = transformed_data.get("serviceEventEffectiveTimeLow")
+            high_val = transformed_data.get("serviceEventEffectiveTimeHigh")
+
+            if low_val and high_val and low_val == high_val:
+                se_eff_time_el.set("value", _str_or_default(low_val))
             else:
-                etree.SubElement(se_eff_time_el, "high").set("value", _str_or_default(high_val))
+                if document_profile_type == "HG08":
+                    logger.debug(f"HG08 profile: Using MHLW namespace for low/high. Low: {low_val}, High: {high_val}")
+                    if low_val:
+                        etree.SubElement(se_eff_time_el, f"{{{MHLW_NS_URL}}}low").set("value", _str_or_default(low_val))
+                    if high_val:
+                        etree.SubElement(se_eff_time_el, f"{{{MHLW_NS_URL}}}high").set("value", _str_or_default(high_val))
+                else: # For other profiles (e.g. future ones, or if HC08 were to include it differently)
+                    logger.debug(f"Non-HG08/Non-HC08 profile: Using default namespace for low/high. Low: {low_val}, High: {high_val}")
+                    if low_val:
+                        etree.SubElement(se_eff_time_el, "low").set("value", _str_or_default(low_val))
+                    if high_val:
+                        etree.SubElement(se_eff_time_el, "high").set("value", _str_or_default(high_val))
+            # --- documentationOf section END ---
+        else:
+            logger.debug(f"Profile {document_profile_type}: Skipping documentationOf section.")
+
+    except Exception as e:
+        logger.error(f"Error in _populate_cda_header (profile: {document_profile_type}): {e}", exc_info=True)
+        raise
 
 # --- CDA Observation Helper Functions ---
 def _create_observation_pq(parent_el: etree._Element, item_data: Dict[str, Any], item_prefix: str):

@@ -33,11 +33,6 @@
       </representedCustodianOrganization>
     </assignedCustodian>
   </custodian>
-  <documentationOf>
-    <serviceEvent>
-      <effectiveTime value="20230601"/>
-    </serviceEvent>
-  </documentationOf>
   <component typeCode="COMP">
     <structuredBody>
       <component>

@@ -5,24 +5,26 @@ from csv_to_xml_converter.logger import setup_logger
 from csv_to_xml_converter.orchestrator import Orchestrator
 
 DEFAULT_CONFIG_FILE = "config_rules/config.json"
-DUMMY_XSD_BASE_PATH = "data/xsd_schemas/"
-XSD_BASE_TO_USE = DUMMY_XSD_BASE_PATH
+# DUMMY_XSD_BASE_PATH = "data/xsd_schemas_official/" # Commented out/Removed
+# XSD_BASE_TO_USE = DUMMY_XSD_BASE_PATH # Commented out/Removed
+XSD_OFFICIAL_BASE = "data/xsd_schemas_official/"
+XSD_GENERAL_BASE = "data/xsd_schemas/"
 
 # Define output paths for aggregated index and summary
 DEFAULT_INDEX_OUTPUT_XML = "data/output_xmls/index.xml" # Changed from ix08_output_V08.xml
 DEFAULT_SUMMARY_OUTPUT_XML = "data/output_xmls/summary.xml" # Changed from su08_output_V08.xml
-DEFAULT_INDEX_XSD_FILE = XSD_BASE_TO_USE + "ix08_V08.xsd"
-DEFAULT_SUMMARY_XSD_FILE = XSD_BASE_TO_USE + "su08_V08.xsd"
+DEFAULT_INDEX_XSD_FILE = XSD_GENERAL_BASE + "ix08_V08.xsd"
+DEFAULT_SUMMARY_XSD_FILE = XSD_GENERAL_BASE + "su08_V08.xsd"
 
 # Paths for individual document generation (CDAs, Settlements)
-DEFAULT_CDA_FULL_INPUT_CSV = "data/input_csvs/sample_health_checkup_full.csv"; DEFAULT_CDA_FULL_RULES_FILE = "config_rules/health_checkup_full_rules.json"; DEFAULT_CDA_FULL_XSD_FILE = XSD_BASE_TO_USE + "hc08_V08.xsd"; DEFAULT_CDA_FULL_OUTPUT_DIR = "data/output_xmls/cda_checkup_full/"; DEFAULT_CDA_FULL_FILE_PREFIX = "hc_cda_"
-DEFAULT_HG_CDA_FULL_INPUT_CSV = "data/input_csvs/sample_health_guidance_full.csv"; DEFAULT_HG_CDA_FULL_RULES_FILE = "config_rules/health_guidance_full_rules.json"; DEFAULT_HG_CDA_XSD_FILE = XSD_BASE_TO_USE + "hg08_V08.xsd"; DEFAULT_HG_CDA_FULL_OUTPUT_DIR = "data/output_xmls/cda_guidance_full/"; DEFAULT_HG_CDA_FILE_PREFIX = "hg_cda_"
-DEFAULT_CS_INPUT_CSV = "data/input_csvs/sample_checkup_settlement.csv"; DEFAULT_CS_RULES_FILE = "config_rules/checkup_settlement_rules.json"; DEFAULT_CS_XSD_FILE = XSD_BASE_TO_USE + "cc08_V08.xsd"; DEFAULT_CS_OUTPUT_DIR = "data/output_xmls/settlements_checkup/"; DEFAULT_CS_FILE_PREFIX = "cs_"
-DEFAULT_GS_INPUT_CSV = "data/input_csvs/sample_guidance_settlement.csv"; DEFAULT_GS_RULES_FILE = "config_rules/guidance_settlement_rules.json"; DEFAULT_GS_XSD_FILE = XSD_BASE_TO_USE + "gc08_V08.xsd"; DEFAULT_GS_OUTPUT_DIR = "data/output_xmls/settlements_guidance/"; DEFAULT_GS_FILE_PREFIX = "gs_"
+DEFAULT_CDA_FULL_INPUT_CSV = "data/input_csvs/sample_health_checkup_full.csv"; DEFAULT_CDA_FULL_RULES_FILE = "config_rules/health_checkup_full_rules.json"; DEFAULT_CDA_FULL_XSD_FILE = XSD_OFFICIAL_BASE + "hc08_V08.xsd"; DEFAULT_CDA_FULL_OUTPUT_DIR = "data/output_xmls/cda_checkup_full/"; DEFAULT_CDA_FULL_FILE_PREFIX = "hc_cda_"
+DEFAULT_HG_CDA_FULL_INPUT_CSV = "data/input_csvs/sample_health_guidance_full.csv"; DEFAULT_HG_CDA_FULL_RULES_FILE = "config_rules/health_guidance_full_rules.json"; DEFAULT_HG_CDA_XSD_FILE = XSD_GENERAL_BASE + "hg08_V08.xsd"; DEFAULT_HG_CDA_FULL_OUTPUT_DIR = "data/output_xmls/cda_guidance_full/"; DEFAULT_HG_CDA_FILE_PREFIX = "hg_cda_"
+DEFAULT_CS_INPUT_CSV = "data/input_csvs/sample_checkup_settlement.csv"; DEFAULT_CS_RULES_FILE = "config_rules/checkup_settlement_rules.json"; DEFAULT_CS_XSD_FILE = XSD_GENERAL_BASE + "cc08_V08.xsd"; DEFAULT_CS_OUTPUT_DIR = "data/output_xmls/settlements_checkup/"; DEFAULT_CS_FILE_PREFIX = "cs_"
+DEFAULT_GS_INPUT_CSV = "data/input_csvs/sample_guidance_settlement.csv"; DEFAULT_GS_RULES_FILE = "config_rules/guidance_settlement_rules.json"; DEFAULT_GS_XSD_FILE = XSD_GENERAL_BASE + "gc08_V08.xsd"; DEFAULT_GS_OUTPUT_DIR = "data/output_xmls/settlements_guidance/"; DEFAULT_GS_FILE_PREFIX = "gs_"
 # Paths for Grouped Checkup CDA Test
 DEFAULT_GROUPED_CHECKUP_CSV = "data/input_csvs/sample_grouped_checkup.csv"
 DEFAULT_GROUPED_CHECKUP_RULES_FILE = "config_rules/grouped_checkup_rules.json"
-DEFAULT_GROUPED_CHECKUP_XSD_FILE = XSD_BASE_TO_USE + "hc08_V08.xsd" # Uses the same health checkup XSD
+DEFAULT_GROUPED_CHECKUP_XSD_FILE = XSD_OFFICIAL_BASE + "hc08_V08.xsd" # Uses the same health checkup XSD
 DEFAULT_GROUPED_CHECKUP_OUTPUT_DIR = "data/output_xmls/cda_checkup_grouped/"
 DEFAULT_GROUPED_CHECKUP_FILE_PREFIX = "hc_grp_cda_"
 DEFAULT_ARCHIVE_OUTPUT_DIR = "data/output_archives/"
@@ -108,8 +110,15 @@ def main():
             all_data_xml_files, all_claims_xml_files,
             archive_base, DEFAULT_ARCHIVE_OUTPUT_DIR
         )
-        if zip_path: main_logger.info(f"OK: Archive created: {zip_path}")
-        else: main_logger.error(f"FAIL: Archive creation.")
+        if zip_path:
+            main_logger.info(f"OK: Archive created: {zip_path}")
+            # Add verification step
+            if orchestrator.verify_archive_contents(zip_path):
+                main_logger.info(f"OK: Archive contents successfully verified: {zip_path}")
+            else:
+                main_logger.error(f"FAIL: Archive contents verification failed for: {zip_path}")
+        else:
+            main_logger.error(f"FAIL: Archive creation.")
     else:
         main_logger.warning("Skipping archiving: missing critical aggregated XMLs or no data/claims files generated.")
     main_logger.info("Application finished.")

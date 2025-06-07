@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <GuidanceClaimDocument xmlns="urn:MHLW:guidance:claim:GC:2021" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:dt="urn:MHLW:share:datatype:2021" xsi:schemaLocation="urn:MHLW:guidance:claim:GC:2021 gc08_V08.xsd urn:MHLW:share:datatype:2021 datatypes_hcgv08.xsd">
   <documentId root="1.2.392.200119.6.1.GC.DEFAULT"/>
-  <creationTime value="20250606163812+0000"/>
+  <creationTime value="20250607002540+0000"/>
   <authorInstitution>
     <dt:id root="1.2.392.200119.6.102.1" extension="GUIDE_CTR_002"/>
   </authorInstitution>

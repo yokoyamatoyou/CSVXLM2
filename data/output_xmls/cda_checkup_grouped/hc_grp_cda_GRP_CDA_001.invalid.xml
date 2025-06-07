@@ -26,11 +26,6 @@
       <representedCustodianOrganization/>
     </assignedCustodian>
   </custodian>
-  <documentationOf>
-    <serviceEvent>
-      <effectiveTime/>
-    </serviceEvent>
-  </documentationOf>
   <component typeCode="COMP">
     <structuredBody>
       <component>

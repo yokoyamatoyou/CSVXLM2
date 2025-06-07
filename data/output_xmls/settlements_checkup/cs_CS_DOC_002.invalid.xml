@@ -12,8 +12,8 @@
   <settlement>
     <claimType code="2"/>
     <commissionType code="0"/>
-    <totalCost value="12000" currency="JPY"/>
-    <copaymentAmount value="0" currency="JPY"/>
-    <claimAmount value="12000" currency="JPY"/>
+    <totalCost value="12000"/>
+    <copaymentAmount value="0"/>
+    <claimAmount value="12000"/>
   </settlement>
 </checkupClaim>
