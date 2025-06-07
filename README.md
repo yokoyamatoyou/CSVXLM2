@@ -81,6 +81,23 @@ The application is configured to look for XSDs in these specific locations. The 
 3.  Output XMLs will be generated in `data/output_xmls/` and ZIP archives in `data/output_archives/`.
 4.  Logs are written to `logs/app.log` (configurable in `config_rules/config.json`).
 
+## Running Tests
+
+The test suite relies on the Python `lxml` package and the `xmllint` command-line tool.
+`lxml` is installed from `requirements.txt`. On Debian/Ubuntu systems install `xmllint` via the `libxml2-utils` package:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y libxml2-utils
+```
+
+Run all unit tests from the project root with:
+
+```bash
+pytest -q
+```
+
+
 ## Development Notes
 
 ### Project Roadmap
