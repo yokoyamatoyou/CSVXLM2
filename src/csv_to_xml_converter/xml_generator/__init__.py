@@ -20,6 +20,16 @@ from .xml_parsing_utils import (
     get_subject_count_from_cda
 )
 
+from ..models import (
+    HealthCheckupRecord,
+    CheckupSettlementRecord,
+    HealthGuidanceRecord,
+    GuidanceSettlementRecord,
+)
+from ..validator import validate_xml, XMLValidationError
+from ..utils.xsd_resolver import resolve_xsd_path
+from datetime import datetime, timezone
+
 
 logger = logging.getLogger(__name__)
 
@@ -347,6 +357,62 @@ def generate_guidance_settlement_xml(transformed_data: Dict[str, Any], current_t
     _create_mo_element(settlement_el, "copaymentAmount", transformed_data, "copaymentAmount") # Use prefix
     _create_mo_element(settlement_el, "claimAmount", transformed_data, "claimAmount") # Use prefix
     return etree.tostring(root, pretty_print=True, xml_declaration=True, encoding="utf-8").decode("utf-8")
+
+
+# --- Convenience Generators with Validation ---
+def generate_hc08_xml(record: HealthCheckupRecord) -> str:
+    """Generate and validate an HC08 ClinicalDocument from a model instance."""
+    xml_el = generate_health_checkup_cda(record.to_xml_dict())
+    xml_str = etree.tostring(xml_el, pretty_print=True, xml_declaration=True, encoding="utf-8").decode("utf-8")
+    xsd_path = resolve_xsd_path("hc08_V08.xsd")
+    valid, errors = validate_xml(xml_str, xsd_path)
+    if not valid:
+        logger.error("HC08 validation failed: %s", errors)
+        raise XMLValidationError("; ".join(errors))
+    pid = record.header.patient_id_mrn.extension if record.header and record.header.patient_id_mrn else ""
+    logger.info("hc08 XML generated successfully for patient_id=%s", pid)
+    return xml_str
+
+
+def generate_cc08_xml(record: CheckupSettlementRecord) -> str:
+    """Generate and validate a CC08 settlement XML from a model instance."""
+    xml_str = generate_checkup_settlement_xml(record.to_xml_dict())
+    xsd_path = resolve_xsd_path("cc08_V08.xsd")
+    valid, errors = validate_xml(xml_str, xsd_path)
+    if not valid:
+        logger.error("CC08 validation failed: %s", errors)
+        raise XMLValidationError("; ".join(errors))
+    pid = record.patient_id_mrn.extension if record.patient_id_mrn else ""
+    logger.info("cc08 XML generated successfully for patient_id=%s", pid)
+    return xml_str
+
+
+def generate_hg08_xml(record: HealthGuidanceRecord) -> str:
+    """Generate and validate an HG08 ClinicalDocument from a model instance."""
+    xml_el = generate_health_guidance_cda(record.to_xml_dict())
+    xml_str = etree.tostring(xml_el, pretty_print=True, xml_declaration=True, encoding="utf-8").decode("utf-8")
+    xsd_path = resolve_xsd_path("hg08_V08.xsd")
+    valid, errors = validate_xml(xml_str, xsd_path)
+    if not valid:
+        logger.error("HG08 validation failed: %s", errors)
+        raise XMLValidationError("; ".join(errors))
+    pid = record.header.patient_id_mrn.extension if record.header and record.header.patient_id_mrn else ""
+    logger.info("hg08 XML generated successfully for patient_id=%s", pid)
+    return xml_str
+
+
+def generate_gc08_xml(record: GuidanceSettlementRecord) -> str:
+    """Generate and validate a GC08 settlement XML from a model instance."""
+    current_time = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S%z")
+    xml_str = generate_guidance_settlement_xml(record.to_xml_dict(), current_time)
+    xsd_path = resolve_xsd_path("gc08_V08.xsd")
+    valid, errors = validate_xml(xml_str, xsd_path)
+    if not valid:
+        logger.error("GC08 validation failed: %s", errors)
+        raise XMLValidationError("; ".join(errors))
+    pid = record.patient_id_mrn.extension if record.patient_id_mrn else ""
+    logger.info("gc08 XML generated successfully for patient_id=%s", pid)
+    return xml_str
 
 if __name__ == "__main__":
     if not logger.hasHandlers():
