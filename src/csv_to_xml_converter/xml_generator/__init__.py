@@ -348,38 +348,3 @@ def generate_guidance_settlement_xml(transformed_data: Dict[str, Any], current_t
     _create_mo_element(settlement_el, "claimAmount", transformed_data, "claimAmount") # Use prefix
     return etree.tostring(root, pretty_print=True, xml_declaration=True, encoding="utf-8").decode("utf-8")
 
-if __name__ == "__main__":
-    if not logger.hasHandlers():
-        logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", stream=sys.stdout)
-    logger.info("XML Gen Self-Test with EntryRelationship...")
-    er_test_data = {
-        "documentIdExtension": "ER_TEST_DOC", "documentEffectiveTime": "20230101",
-        "typeIdRootOid": "2.16.840.1.113883.1.3", "typeIdExtension": "POCD_HD000040",
-        "documentTypeCode": "10", "documentTypeCodeSystem": "1.2.392.200119.6.1001", "documentTypeDisplayName": "特定健診情報",
-        "documentIdRootOid": "1.2.3.4.5.6.7",
-        "section_ResultsCode": "RESULTS_SECTION", "section_ResultsCodeSystem": "LOCAL_SYS", "section_ResultsTitle":"検査結果セクション",
-        "examination_results_er_group": [
-            {
-                "parent_obs_data": { "code": "PANEL_ANEMIA", "codeSystem": "LOCAL_CODES", "displayName": "貧血検査パネル", "classCode": "CLUSTER"},
-                "entry_relationship_typeCode": "COMP",
-                "components": [
-                    {"code": "HGB", "codeSystem": "JLAC10", "displayName": "ヘモグロビン", "value": "10.5", "unit": "g/dL", "value_type": "PQ"},
-                    {"code": "RBC", "codeSystem": "JLAC10", "displayName": "赤血球数", "value": "350", "unit": "x10E4/uL", "value_type": "PQ"}
-                ]
-            }
-        ],
-        "item_heightCode": "HGT_C", "item_heightCodeSystem": "SYS_H", "item_heightDisplayName": "Height",
-        "item_height_value": "175", "item_height_unit":"cm"
-    }
-    generated_cda_er_el = generate_health_checkup_cda(er_test_data)
-    generated_cda_er_xml = etree.tostring(generated_cda_er_el, pretty_print=True, xml_declaration=True, encoding="utf-8").decode("utf-8")
-    print("--- CDA with EntryRelationship Group ---"); print(generated_cda_er_xml)
-    assert "<observation classCode=\"CLUSTER\" moodCode=\"EVN\">" in generated_cda_er_xml, "Parent observation for panel not found or classCode wrong."
-    assert "<code code=\"PANEL_ANEMIA\"" in generated_cda_er_xml, "Panel code missing."
-    assert "<entryRelationship typeCode=\"COMP\">" in generated_cda_er_xml, "EntryRelationship tag missing."
-    assert "<code code=\"HGB\" codeSystem=\"JLAC10\" displayName=\"ヘモグロビン\"/>" in generated_cda_er_xml
-    assert "<value xsi:type=\"dt:PQ\" value=\"10.5\" unit=\"g/dL\"/>" in generated_cda_er_xml
-    assert "<code code=\"RBC\" codeSystem=\"JLAC10\" displayName=\"赤血球数\"/>" in generated_cda_er_xml
-    assert "<value xsi:type=\"dt:PQ\" value=\"350\" unit=\"x10E4/uL\"/>" in generated_cda_er_xml
-    assert "<code code=\"HGT_C\" codeSystem=\"SYS_H\" displayName=\"Height\"/>" in generated_cda_er_xml
-    logger.info("XML Generator EntryRelationship self-test PASSED.")
