@@ -107,10 +107,16 @@ sets used for these validations.  The schemas are located in the following
 directories:
 
 * `XSD/` – Top-level directory containing the main XSD files and `coreschemas/`.
-* `5521111111_00280081_202405271_1/5521111111_00280081_202405271_1/XSD/` –
-  Example package layout with bundled XSDs that mirrors the final ZIP structure.
+* Sample package with the full directory layout used in generated ZIP archives
+  is available separately (see **Sample Data** below).
 
 During XML generation the program loads the corresponding schema from these
-folders and fails loudly if validation errors occur. If a schema exists in both
-locations, the deeper example path is preferred over the top-level `XSD/`
-directory.
+directories and fails loudly if validation errors occur.
+
+## Sample Data
+
+The repository no longer includes the example ZIP archive or its extracted
+contents. You can obtain the sample package from the project's release assets or
+from the separate **csvxlm-sample-data** repository. After downloading, extract
+the archive alongside this repository if you want to replicate the full archive
+structure used by the tool.

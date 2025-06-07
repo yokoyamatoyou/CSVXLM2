@@ -192,3 +192,6 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+# Ignore sample package
+5521111111_00280081_202405271_1.zip
+5521111111_00280081_202405271_1/
