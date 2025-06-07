@@ -1,0 +1,11 @@
+[
+  {
+    "rule_type": "comment",
+    "comment": "Dummy rules file for grouped_checkup. Actual rules to be defined."
+  },
+  {
+    "rule_type": "direct_mapping",
+    "input_field": "doc_id",
+    "output_field": "documentIdExtension"
+  }
+]

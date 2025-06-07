@@ -45,21 +45,7 @@
     <structuredBody>
       <component>
         <section>
-          <code code=""/>
-          <title>特定保健指導共通情報</title>
-          <text>特定保健指導の共通情報を以下に示す。</text>
-        </section>
-      </component>
-      <component>
-        <section>
-          <code code=""/>
-          <title>初回面接情報</title>
-          <entry typeCode="DRIV">
-            <observation classCode="OBS" moodCode="EVN">
-              <code code=""/>
-              <value xsi:type="dt:INT" value="180"/>
-            </observation>
-          </entry>
+          <code/>
         </section>
       </component>
     </structuredBody>

@@ -4,10 +4,22 @@ XML Generator with entryRelationship support for CDA and restored full generator
 """
 from lxml import etree
 from typing import Dict, Any, Optional, List
-import os
+import os # Make sure os is imported
 import sys
 import uuid
 import logging
+
+logger = logging.getLogger(__name__)
+logger.info(f"xml_generator/__init__.py loaded from: {os.path.abspath(__file__)}")
+
+# Import the new parsing utilities so they are accessible via the package
+from . import xml_parsing_utils
+from .xml_parsing_utils import (
+    get_claim_amount_from_cc08,
+    get_claim_amount_from_gc08,
+    get_subject_count_from_cda
+)
+
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +39,14 @@ def _str_or_default(value: Any, default_str: str = "") -> str:
 
 # --- Fully Restored MHLW DataType Helper Functions ---
 def _create_ii_element(parent_el: etree._Element, el_name: str, item_data: Dict[str, Any], id_prefix: str) -> Optional[etree._Element]:
+    logger.debug(f"Attempting to create II element: el_name='{el_name}', id_prefix='{id_prefix}' with data: { {k: v for k, v in item_data.items() if k.startswith(id_prefix)} }")
     root_val = item_data.get(f"{id_prefix}RootOid")
+    # Fallback to check for key without "Oid" suffix for backward compatibility or rule variations
+    if root_val is None:
+        root_val = item_data.get(f"{id_prefix}Root")
+        if root_val is not None:
+            logger.debug(f"Used fallback key '{id_prefix}Root' for element '{el_name}' as '{id_prefix}RootOid' was not found.")
+
     extension_val = item_data.get(f"{id_prefix}Extension")
     if root_val is None and extension_val is None: return None
     ii_el = etree.SubElement(parent_el, el_name)
@@ -40,7 +59,6 @@ def _create_cd_element(parent_el: etree._Element, el_name: str, item_data: Dict[
     cs_key = f"{cd_prefix}CodeSystem" if cd_prefix else "codeSystem"
     dn_key = f"{cd_prefix}DisplayName" if cd_prefix else "displayName"
     code_val = item_data.get(code_key)
-    # if code_val is None: return None # Allow creating <code/> if other parts exist or for some XSDs
     cd_el = etree.SubElement(parent_el, el_name)
     if code_val is not None: cd_el.set("code", _str_or_default(code_val))
     if item_data.get(cs_key) is not None: cd_el.set("codeSystem", _str_or_default(item_data.get(cs_key)))
@@ -67,7 +85,7 @@ def _create_mo_element(parent_el: etree._Element, el_name: str, item_data: Dict[
 
 # --- Fully Restored XML Generators ---
 def generate_index_xml(transformed_data: Dict[str, Any]) -> str:
-    schema_loc_val = f"{MHLW_NS_URL} ix08_V08.xsd" # Assuming this schema uses the URL
+    schema_loc_val = f"{MHLW_NS_URL} ix08_V08.xsd"
     root = etree.Element("index", nsmap=NSMAP_MHLW_DEFAULT)
     root.set(f"{{{XSI_NS}}}schemaLocation", schema_loc_val)
     etree.SubElement(root, "interactionType").set("code", _str_or_default(transformed_data.get("interactionType"), "1"))
@@ -81,52 +99,102 @@ def generate_index_xml(transformed_data: Dict[str, Any]) -> str:
     return etree.tostring(root, pretty_print=True, xml_declaration=True, encoding="utf-8").decode("utf-8")
 
 def generate_summary_xml(transformed_data: Dict[str, Any]) -> str:
-    schema_loc_val = f"{MHLW_NS_URL} su08_V08.xsd" # Assuming this schema uses the URL
+    schema_loc_val = f"{MHLW_NS_URL} su08_V08.xsd"
     root = etree.Element("summary", nsmap=NSMAP_MHLW_DEFAULT)
     root.set(f"{{{XSI_NS}}}schemaLocation", schema_loc_val)
-    _create_cd_element(root, "serviceEventType", transformed_data, "serviceEventType")
-    _create_int_element(root, "totalSubjectCount", transformed_data, "totalSubjectCount") # _value was convention
+
+    set_code = transformed_data.get("serviceEventTypeCode")
+    if set_code is not None:
+        set_el = etree.SubElement(root, "serviceEventType")
+        set_el.set("code", _str_or_default(set_code))
+
+    _create_int_element(root, "totalSubjectCount", transformed_data, "totalSubjectCount")
     _create_mo_element(root, "totalCostAmount", transformed_data, "totalCostAmount", currency_key_suffix="_currency")
     _create_mo_element(root, "totalPaymentAmount", transformed_data, "totalPaymentAmount", currency_key_suffix="_currency")
     _create_mo_element(root, "totalClaimAmount", transformed_data, "totalClaimAmount", currency_key_suffix="_currency")
-    if transformed_data.get("totalPaymentByOtherProgramValue") is not None: # Check Value
+    if transformed_data.get("totalPaymentByOtherProgramValue") is not None:
          _create_mo_element(root, "totalPaymentByOtherProgram", transformed_data, "totalPaymentByOtherProgram", currency_key_suffix="_currency")
     return etree.tostring(root, pretty_print=True, xml_declaration=True, encoding="utf-8").decode("utf-8")
 
-def _populate_cda_header(doc: etree._Element, transformed_data: Dict[str, Any]): # Full version
-    _create_ii_element(doc, "typeId", transformed_data, "typeId")
-    _create_ii_element(doc, "id", transformed_data, "documentId")
-    _create_cd_element(doc, "code", transformed_data, "documentType")
-    etree.SubElement(doc, "title").text = _str_or_default(transformed_data.get("documentTitle"))
-    etree.SubElement(doc, "effectiveTime").set("value", _str_or_default(transformed_data.get("documentEffectiveTime")))
-    _create_cd_element(doc, "confidentialityCode", transformed_data, "confidentiality")
-    etree.SubElement(doc, "languageCode").set("code", _str_or_default(transformed_data.get("languageCode"), "ja-JP"))
+def _populate_cda_header(doc: etree._Element, transformed_data: Dict[str, Any], document_profile_type: Optional[str] = None):
+    logger.debug(f"Entering _populate_cda_header for profile: {document_profile_type}. Data keys: {list(transformed_data.keys())}")
+    try:
+        _create_ii_element(doc, "typeId", transformed_data, "typeId")
+        _create_ii_element(doc, "id", transformed_data, "documentId")
+        _create_cd_element(doc, "code", transformed_data, "documentType")
+        etree.SubElement(doc, "title").text = _str_or_default(transformed_data.get("documentTitle"))
+        etree.SubElement(doc, "effectiveTime").set("value", _str_or_default(transformed_data.get("documentEffectiveTime")))
+        _create_cd_element(doc, "confidentialityCode", transformed_data, "confidentiality")
+        etree.SubElement(doc, "languageCode").set("code", _str_or_default(transformed_data.get("languageCode"), "ja-JP"))
 
-    rt_el = etree.SubElement(doc, "recordTarget"); pr_el = etree.SubElement(rt_el, "patientRole")
-    _create_ii_element(pr_el, "id", transformed_data, "patientIdMrn")
-    if transformed_data.get("patientIdInsuranceNoRootOid") or transformed_data.get("patientIdInsuranceNoExtension"):
-        _create_ii_element(pr_el, "id", transformed_data, "patientIdInsuranceNo")
-    patient_el = etree.SubElement(pr_el, "patient")
-    name_el = etree.SubElement(patient_el, "name")
-    etree.SubElement(name_el, f"{{{MHLW_NS_URL}}}family").text = _str_or_default(transformed_data.get("patientNameFamily"))
-    etree.SubElement(name_el, f"{{{MHLW_NS_URL}}}given").text = _str_or_default(transformed_data.get("patientNameGiven"))
-    _create_cd_element(patient_el, "administrativeGenderCode", transformed_data, "patientGender")
-    etree.SubElement(patient_el, "birthTime").set("value", _str_or_default(transformed_data.get("patientBirthTimeValue")))
+        rt_el = etree.SubElement(doc, "recordTarget"); pr_el = etree.SubElement(rt_el, "patientRole")
+        _create_ii_element(pr_el, "id", transformed_data, "patientIdMrn")
+        if transformed_data.get("patientIdInsuranceNoRootOid") or transformed_data.get("patientIdInsuranceNoExtension"):
+            _create_ii_element(pr_el, "id", transformed_data, "patientIdInsuranceNo")
+        patient_el = etree.SubElement(pr_el, "patient")
+        name_el = etree.SubElement(patient_el, "name")
+        etree.SubElement(name_el, f"{{{MHLW_NS_URL}}}family").text = _str_or_default(transformed_data.get("patientNameFamily"))
+        etree.SubElement(name_el, f"{{{MHLW_NS_URL}}}given").text = _str_or_default(transformed_data.get("patientNameGiven"))
+        _create_cd_element(patient_el, "administrativeGenderCode", transformed_data, "patientGender")
+        etree.SubElement(patient_el, "birthTime").set("value", _str_or_default(transformed_data.get("patientBirthTimeValue")))
 
-    auth_el = etree.SubElement(doc, "author"); asgn_auth_el = etree.SubElement(auth_el, "assignedAuthor")
-    _create_ii_element(asgn_auth_el, "id", transformed_data, "authorId")
+        auth_el = etree.SubElement(doc, "author"); asgn_auth_el = etree.SubElement(auth_el, "assignedAuthor")
+        _create_ii_element(asgn_auth_el, "id", transformed_data, "authorId")
 
-    cust_el = etree.SubElement(doc, "custodian"); asgn_cust_el = etree.SubElement(cust_el, "assignedCustodian")
-    rep_cust_org_el = etree.SubElement(asgn_cust_el, "representedCustodianOrganization")
-    _create_ii_element(rep_cust_org_el, "id", transformed_data, "custodianId")
+        cust_el = etree.SubElement(doc, "custodian"); asgn_cust_el = etree.SubElement(cust_el, "assignedCustodian")
+        rep_cust_org_el = etree.SubElement(asgn_cust_el, "representedCustodianOrganization")
+        _create_ii_element(rep_cust_org_el, "id", transformed_data, "custodianId")
 
-    doc_of_el = etree.SubElement(doc, "documentationOf"); se_el = etree.SubElement(doc_of_el, "serviceEvent")
-    se_eff_time_el = etree.SubElement(se_el, "effectiveTime")
-    low_val = transformed_data.get("serviceEventEffectiveTimeLow"); high_val = transformed_data.get("serviceEventEffectiveTimeHigh")
-    if low_val and high_val and low_val == high_val: se_eff_time_el.set("value", _str_or_default(low_val))
-    elif low_val: etree.SubElement(se_eff_time_el, f"{{{MHLW_NS_URL}}}low").set("value", _str_or_default(low_val))
-    if high_val and low_val != high_val : etree.SubElement(se_eff_time_el, f"{{{MHLW_NS_URL}}}high").set("value", _str_or_default(high_val))
+        # Moved documentationOf block to the end of header population, before exception handling # This comment is now outdated. documentationOf is after custodian.
 
+        if document_profile_type != "HC08": # Skip documentationOf entirely for HC08
+            logger.debug(f"Profile {document_profile_type}: Generating documentationOf section.")
+            # --- documentationOf section START ---
+            doc_of_el = etree.SubElement(doc, "documentationOf")
+
+            if document_profile_type == "HG08":
+                # For HG08, documentationOf has no typeCode as per previous findings
+                pass # No typeCode attribute
+            else: # For other profiles (if any in future) or a default if not HG08 (and not HC08)
+                doc_of_el.set("typeCode", "DOC")
+
+            se_el = etree.SubElement(doc_of_el, "serviceEvent")
+            if document_profile_type == "HG08":
+                # For HG08, serviceEvent has no classCode/moodCode as per previous findings
+                pass # No classCode or moodCode attributes
+            else: # For other profiles or a default (and not HC08)
+                se_el.set("classCode", "ACT")
+                se_el.set("moodCode", "EVN")
+
+            # Optional: Add id to serviceEvent (still commented as per previous findings)
+            # _create_ii_element(se_el, "id", transformed_data, "serviceEventId")
+
+            se_eff_time_el = etree.SubElement(se_el, "effectiveTime")
+            low_val = transformed_data.get("serviceEventEffectiveTimeLow")
+            high_val = transformed_data.get("serviceEventEffectiveTimeHigh")
+
+            if low_val and high_val and low_val == high_val:
+                se_eff_time_el.set("value", _str_or_default(low_val))
+            else:
+                if document_profile_type == "HG08":
+                    logger.debug(f"HG08 profile: Using MHLW namespace for low/high. Low: {low_val}, High: {high_val}")
+                    if low_val:
+                        etree.SubElement(se_eff_time_el, f"{{{MHLW_NS_URL}}}low").set("value", _str_or_default(low_val))
+                    if high_val:
+                        etree.SubElement(se_eff_time_el, f"{{{MHLW_NS_URL}}}high").set("value", _str_or_default(high_val))
+                else: # For other profiles (e.g. future ones, or if HC08 were to include it differently)
+                    logger.debug(f"Non-HG08/Non-HC08 profile: Using default namespace for low/high. Low: {low_val}, High: {high_val}")
+                    if low_val:
+                        etree.SubElement(se_eff_time_el, "low").set("value", _str_or_default(low_val))
+                    if high_val:
+                        etree.SubElement(se_eff_time_el, "high").set("value", _str_or_default(high_val))
+            # --- documentationOf section END ---
+        else:
+            logger.debug(f"Profile {document_profile_type}: Skipping documentationOf section.")
+
+    except Exception as e:
+        logger.error(f"Error in _populate_cda_header (profile: {document_profile_type}): {e}", exc_info=True)
+        raise
 
 # --- CDA Observation Helper Functions ---
 def _create_observation_pq(parent_el: etree._Element, item_data: Dict[str, Any], item_prefix: str):
@@ -161,7 +229,7 @@ def _create_observation_int(parent_el: etree._Element, item_data: Dict[str, Any]
 def generate_health_checkup_cda(transformed_data: Dict[str, Any]) -> etree._Element: # Merged with ER logic
     doc = etree.Element("ClinicalDocument", nsmap=NSMAP_HL7_DEFAULT)
     doc.set(f"{{{XSI_NS}}}schemaLocation", f"{HL7_V3_NS} hc08_V08.xsd {MHLW_NS_URL} coreschemas/datatypes_hcgv08.xsd")
-    _populate_cda_header(doc, transformed_data)
+    _populate_cda_header(doc, transformed_data, document_profile_type="HC08")
     body_comp = etree.SubElement(doc, "component", typeCode="COMP"); structured_body = etree.SubElement(body_comp, "structuredBody")
 
     # Assume one main section for results for now
@@ -206,7 +274,7 @@ def generate_health_checkup_cda(transformed_data: Dict[str, Any]) -> etree._Elem
 def generate_health_guidance_cda(transformed_data: Dict[str, Any]) -> etree._Element: # Full version
     doc = etree.Element("ClinicalDocument", nsmap=NSMAP_HL7_DEFAULT)
     doc.set(f"{{{XSI_NS}}}schemaLocation", f"{HL7_V3_NS} hg08_V08.xsd {MHLW_NS_URL} coreschemas/datatypes_hcgv08.xsd")
-    _populate_cda_header(doc, transformed_data) # Use the full header
+    _populate_cda_header(doc, transformed_data, document_profile_type="HG08")
     # Simplified body for now -  needs full structure similar to HC CDA if ER groups are used here too
     body_comp = etree.SubElement(doc, "component", typeCode="COMP"); structured_body = etree.SubElement(body_comp, "structuredBody")
     common_info_sect_comp = etree.SubElement(structured_body, "component") # Example section
@@ -232,9 +300,20 @@ def generate_checkup_settlement_xml(transformed_data: Dict[str, Any]) -> str: # 
     if transformed_data.get("commissionTypeCode"):
         _create_cd_element(settlement_el, f"{{{MHLW_NS_URL}}}commissionType", transformed_data, "commissionType")
     _create_int_element(settlement_el, f"{{{MHLW_NS_URL}}}totalPoints", transformed_data, "totalPoints") # Use prefix
-    _create_mo_element(settlement_el, f"{{{MHLW_NS_URL}}}totalCost", transformed_data, "totalCost") # Use prefix
-    _create_mo_element(settlement_el, f"{{{MHLW_NS_URL}}}copaymentAmount", transformed_data, "copaymentAmount") # Use prefix
-    _create_mo_element(settlement_el, f"{{{MHLW_NS_URL}}}claimAmount", transformed_data, "claimAmount") # Use prefix
+
+    # Manual creation for MO-like fields in CC08 that don't allow @currency
+    total_cost_val = transformed_data.get("totalCostValue")
+    if total_cost_val is not None:
+        tc_el = etree.SubElement(settlement_el, f"{{{MHLW_NS_URL}}}totalCost"); tc_el.set("value", _str_or_default(total_cost_val))
+
+    copay_val = transformed_data.get("copaymentAmountValue")
+    if copay_val is not None:
+        cp_el = etree.SubElement(settlement_el, f"{{{MHLW_NS_URL}}}copaymentAmount"); cp_el.set("value", _str_or_default(copay_val))
+
+    claim_val = transformed_data.get("claimAmountValue")
+    if claim_val is not None:
+        ca_el = etree.SubElement(settlement_el, f"{{{MHLW_NS_URL}}}claimAmount"); ca_el.set("value", _str_or_default(claim_val))
+
     return etree.tostring(root, pretty_print=True, xml_declaration=True, encoding="utf-8").decode("utf-8")
 
 def generate_guidance_settlement_xml(transformed_data: Dict[str, Any], current_time_iso: str) -> str: # Full version
@@ -257,7 +336,11 @@ def generate_guidance_settlement_xml(transformed_data: Dict[str, Any], current_t
     _create_cd_element(encounter_el, "timing", transformed_data, "timing")
     hg_card_el = etree.SubElement(root, "healthGuidanceCard")
     _create_cd_element(hg_card_el, "copaymentType", transformed_data, "copaymentType")
-    _create_int_element(hg_card_el, "pointsCompleted", transformed_data, "pointsCompleted") # Use prefix
+
+    pc_val = transformed_data.get("pointsCompletedValue")
+    pc_el = etree.SubElement(hg_card_el, "pointsCompleted")
+    pc_el.set("value", _str_or_default(pc_val, "0"))
+
     _create_int_element(hg_card_el, "pointsIntended", transformed_data, "pointsIntended") # Use prefix
     settlement_el = etree.SubElement(root, "settlementDetails")
     _create_mo_element(settlement_el, "totalCost", transformed_data, "totalCost") # Use prefix
