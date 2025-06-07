@@ -45,39 +45,4 @@ def load_config(config_path: str = DEFAULT_CONFIG_PATH) -> dict:
 
     return config
 
-if __name__ == '__main__':
-    # Example of how to test the config loading
-    # This part will only run when the script is executed directly (e.g., python -m csv_to_xml_converter.config)
-    print("Attempting to load default configuration...")
-    try:
-        cfg = load_config()
-        print("Default configuration loaded successfully:")
-        # print(json.dumps(cfg, indent=2)) # Pretty print the config
 
-        # Example: Accessing a specific configuration value
-        log_level = cfg.get("logging", {}).get("log_level", "NOT_FOUND")
-        print(f"Log level from config: {log_level}")
-
-        # Test with a non-existent file
-        # print("\nAttempting to load a non-existent configuration file...")
-        # try:
-        #     load_config("non_existent_config.json")
-        # except FileNotFoundError as e:
-        #     print(f"Caught expected error: {e}")
-        # except Exception as e:
-        #     print(f"Caught unexpected error: {e}")
-
-    except FileNotFoundError as e:
-        print(f"Error: {e}")
-        print("Please ensure 'config_rules/config.json' exists in the project root or provide a valid path.")
-    except ValueError as e:
-        print(f"Error: {e}")
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
-
-    # To run this test:
-    # 1. Make sure you are in the root directory of the project (e.g., /app)
-    # 2. Run: python -m src.csv_to_xml_converter.config
-    #    (Adjust the module path if your project structure or PYTHONPATH is different)
-    #    Alternatively, if your top-level 'src' is in PYTHONPATH:
-    #    python -m csv_to_xml_converter.config
