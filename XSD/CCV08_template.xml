@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<checkupClaim xmlns="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000161103.html" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000161103.html ../XSD/cc08_V08.xsd">
+  <!-- 受診情報 -->
+  <encounter>
+    <!-- 実施区分 -->
+    <serviceEventType code="1"/>
+  </encounter>
+  <!-- 受診者情報 -->
+  <subjectPerson>
+    <!-- 特定健診機関番号（特定健診機関番号） -->
+    <performerOrganization>
+      <id root="1.2.392.200119.6.102" extension=""/>
+    </performerOrganization>
+    <!-- 被保険者証情報 -->
+    <insuranceCard>
+      <!-- 保険者番号（保険者番号） -->
+      <insurerNumber root="1.2.392.200119.6.101" extension=""/>
+      <!-- 被保険者記号（被保険者記号） -->
+      <symbol root="1.2.392.200119.6.204" extension=""/>
+      <!-- 被保険者番号（被保険者番号） -->
+      <number root="1.2.392.200119.6.205" extension=""/>
+      <!-- 被保険者番号枝番（被保険者番号枝番）  2021.02  -->
+      <branchCode root="1.2.392.200119.6.211" extension=""/>
+    </insuranceCard>
+    <!-- 氏名-->
+    <name></name>
+    <!-- 住所 -->
+    <addr>
+      <postalCode></postalCode></addr>
+    <!-- 生年月日 -->
+    <birthTime value="19600501"/>
+    <!-- 性別コード -->
+    <administrativeGender code=""/>
+  </subjectPerson>
+  <!-- 特定健診受診券情報 -->
+  <checkupCard>
+    <!-- 特定健診受診券整理番号（特定健診受診券整理番号） -->
+    <id root="1.2.392.200119.6.209" extension=""/>
+    <!-- 有効期限-->
+    <effectiveTime>
+      <high value=""/>
+    </effectiveTime>
+    <!-- 窓口負担（基本的な健診） -->
+    <chargeTypeBasic code="">
+        <amount value="" currency="JPY"/>
+        <rate value="" unit="%"/>
+    </chargeTypeBasic>
+       <!-- 窓口負担（詳細な健診） -->
+    <chargeTypeDetail code="">
+        <amount value="" currency="JPY"/>
+        <rate value="" unit="%"/>
+    </chargeTypeDetail>
+       <!-- 窓口負担（追加健診） -->
+    <chargeTypeOther code="">
+        <amount value="" currency="JPY"/>
+        <rate value="" unit="%"/>
+    </chargeTypeOther>
+        <!-- 窓口負担（人間ドック） -->
+    <chargeTypeHumanDryDock>
+      <copayment code="">
+        <amount value="" currency="JPY"/>
+        <rate value="" unit="%"/>
+      </copayment>
+      <maxInsuranceLimit code="">
+        <amount value="" currency="JPY"/>
+      </maxInsuranceLimit>
+    </chargeTypeHumanDryDock>
+  </checkupCard>
+  <!-- 決済情報 -->
+  <settlement>
+    <!-- 請求区分コード-->
+    <claimType code=""/>
+    <!-- 委託料単価区分 -->
+    <commissionType code=""/>
+
+    <!-- 単価（基本的な健診） -->
+    <unitPriceBasic>
+      <amount value="" currency="JPY"/>
+    </unitPriceBasic>
+
+    <!-- 単価とコード１（詳細な健診）） -->
+    <unitPriceDetail>
+      <amount value="" currency="JPY"/>
+	<observation code="" />
+    </unitPriceDetail>
+
+    <!-- 単価とコード２（詳細な健診）） -->
+    <unitPriceDetail>
+      <amount value="" currency="JPY"/>
+	<observation code="" />
+    </unitPriceDetail>
+
+    <!-- 単価とコード３（詳細な健診）） -->
+    <unitPriceDetail>
+      <amount value="" currency="JPY"/>
+	<observation code="" />
+    </unitPriceDetail>
+
+    <!-- 単価とコード４（詳細な健診）） -->
+    <unitPriceDetail>
+      <amount value="" currency="JPY"/>
+	<observation code="" />
+    </unitPriceDetail>
+
+    <!-- 単価とコード（追加健診又は人間ドック） -->
+    <!-- end of unitPriceOther このコメント行は必須 -->
+
+    <!-- 窓口負担金額（基本的な健診） -->
+    <paymentForBasic>
+      <amount value="" currency="JPY"/>
+    </paymentForBasic>
+
+    <!-- 窓口負担金額（詳細な健診） -->
+    <paymentForDetail>
+      <amount value="" currency="JPY"/>
+    </paymentForDetail>
+
+    <!-- 窓口負担金額（追加健診又は人間ドック -->
+    <paymentForOther>
+      <amount value="" currency="JPY"/>
+    </paymentForOther>
+
+    <!-- 単価（合計 -->
+    <unitAmount value="" currency="JPY"/>
+
+    <!-- 窓口支払金額 -->
+    <paymentAmount value="" currency="JPY"/>
+
+    <!-- 集合契約時の他の健診側負担額 -->
+    <paymentByOtherProgram value="" currency="JPY"/>
+
+    <!-- 請求金額 -->
+    <claimAmount value="" currency="JPY"/>
+  </settlement>
+</checkupClaim>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--対応仕様書：2008から変更せず 2017.11.01 -->
+<summary xmlns="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000161103.html" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000161103.html ./XSD/su08_V08.xsd">
+  <!-- 実施区分 -->
+  <serviceEventType code="1"/>
+  <!-- 特定健診受診者／特定保健指導利用者の総数 -->
+  <totalSubjectCount value="999"/>
+  <!-- 特定健診 単価総計／特定保健指導 算定金額総計 -->
+  <totalCostAmount value="99999" currency="JPY"/>
+  <!-- 特定健診／特定保健指導の窓口支払の金額総計 -->
+  <totalPaymentAmount value="99999" currency="JPY"/>
+  <!-- 他の検診による負担金額の総計 -->
+  <totalPaymentByOtherProgram value="99999" currency="JPY"/>
+  <!-- 特定健診／特定保健指導の請求金額総計 -->
+  <totalClaimAmount value="99999" currency="JPY"/>
+</summary>
