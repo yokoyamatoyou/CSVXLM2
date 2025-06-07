@@ -16,6 +16,11 @@ from ..xml_generator import (
     get_claim_amount_from_cc08, get_claim_amount_from_gc08, get_subject_count_from_cda
 )
 from ..validator import validate_xml, XMLValidationError
+from ..models import (
+    HealthCheckupRecord, HealthGuidanceRecord,
+    CheckupSettlementRecord, GuidanceSettlementRecord,
+    IntermediateRecord # Though Rule Engine uses local if not found, Orchestrator should know it for type hints if any.
+)
 
 logger = logging.getLogger(__name__)
 
@@ -195,13 +200,27 @@ class Orchestrator:
             if not parsed_data_rows: logger.error(f"No data from {csv_file_path}"); return []
             rules = load_rules(rules_file_path); Path(output_xml_dir).mkdir(parents=True, exist_ok=True)
             logger.info(f"Loaded {len(rules)} rules for Health Checkup CDA from: {rules_file_path}")
+            model_class = HealthCheckupRecord
             for i, record_data in enumerate(parsed_data_rows):
                 row_doc_id = record_data.get("doc_id", f"unk_hc_doc_{i+1}"); logger.info(f"Processing HC CDA record {i+1}/{parsed_data_rows_count}: {row_doc_id}");
                 try:
-                    transformed_list = apply_rules([record_data], rules, lookup_tables=self.lookup_tables)
+                    # Pass model_class to apply_rules
+                    transformed_list = apply_rules([record_data], rules, model_class, lookup_tables=self.lookup_tables)
                     if not transformed_list: logger.warning(f"No data after rules for HC CDA record {row_doc_id}."); continue
-                    transformed_record = transformed_list[0]; logger.debug(f"Transformed HC CDA record {row_doc_id}: {transformed_record}")
-                    cda_element = generate_health_checkup_cda(transformed_record)
+
+                    transformed_model_instance = transformed_list[0]
+                    logger.debug(f"Transformed HC CDA model instance {row_doc_id}: {transformed_model_instance}")
+                    if hasattr(transformed_model_instance, 'errors') and transformed_model_instance.errors:
+                         logger.warning(f"Rule application for HC CDA {row_doc_id} resulted in errors: {transformed_model_instance.errors}")
+
+                    # Pass model instance directly to generator
+                    # The generator will be adapted later to use model.header.to_xml_dict() and access body components
+                    # For now, pass header dict for _populate_cda_header. Body will be broken.
+                    header_dict = transformed_model_instance.header.to_xml_dict() if transformed_model_instance.header else {}
+                    # The generate_health_checkup_cda function will need to be updated to accept the model instance
+                    # for body generation, and use header_dict for the header part.
+                    # Temporarily, we pass header_dict. This will break body generation.
+                    cda_element = generate_health_checkup_cda(header_dict) # TODO: Adapt generator for model input
                     xml_string = etree.tostring(cda_element, pretty_print=True, xml_declaration=True, encoding="utf-8").decode("utf-8")
                     is_valid, errors = validate_xml(xml_string, xsd_file_path)
                     if not is_valid:
@@ -234,13 +253,25 @@ class Orchestrator:
             if not parsed_data_rows: logger.error(f"No data from {csv_file_path}"); return []
             rules = load_rules(rules_file_path); Path(output_xml_dir).mkdir(parents=True, exist_ok=True)
             logger.info(f"Loaded {len(rules)} rules for Health Guidance CDA from: {rules_file_path}")
+            model_class = HealthGuidanceRecord
             for i, record_data in enumerate(parsed_data_rows):
                 row_doc_id = record_data.get("doc_id", f"unk_hg_doc_{i+1}"); logger.info(f"Processing HG CDA record {i+1}/{parsed_data_rows_count}: {row_doc_id}");
                 try:
-                    transformed_list = apply_rules([record_data], rules, lookup_tables=self.lookup_tables)
+                    transformed_list = apply_rules([record_data], rules, model_class, lookup_tables=self.lookup_tables)
                     if not transformed_list: logger.warning(f"No data after rules for HG CDA record {row_doc_id}."); continue
-                    transformed_record = transformed_list[0]; logger.debug(f"Transformed HG CDA record {row_doc_id}: {transformed_record}")
-                    cda_element = generate_health_guidance_cda(transformed_record)
+
+                    transformed_model_instance = transformed_list[0]
+                    logger.debug(f"Transformed HG CDA model instance {row_doc_id}: {transformed_model_instance}")
+                    if hasattr(transformed_model_instance, 'errors') and transformed_model_instance.errors:
+                         logger.warning(f"Rule application for HG CDA {row_doc_id} resulted in errors: {transformed_model_instance.errors}")
+
+                    # Pass model instance directly to generator
+                    # For now, pass header dict for _populate_cda_header. Body will be broken.
+                    header_dict = transformed_model_instance.header.to_xml_dict() if transformed_model_instance.header else {}
+                    # The generate_health_guidance_cda function will need to be updated to accept the model instance
+                    # for body generation, and use header_dict for the header part.
+                    # Temporarily, we pass header_dict. This will break body generation.
+                    cda_element = generate_health_guidance_cda(header_dict) # TODO: Adapt generator for model input
                     xml_string = etree.tostring(cda_element, pretty_print=True, xml_declaration=True, encoding="utf-8").decode("utf-8")
                     is_valid, errors = validate_xml(xml_string, xsd_file_path)
                     if not is_valid: logger.error(f"HG CDA for {row_doc_id} FAILED validation: {errors}"); continue
@@ -268,13 +299,20 @@ class Orchestrator:
             if not parsed_data_rows: logger.error(f"No data from {csv_file_path}"); return []
             rules = load_rules(rules_file_path); Path(output_xml_dir).mkdir(parents=True, exist_ok=True)
             logger.info(f"Loaded {len(rules)} rules for Checkup Settlement from: {rules_file_path}")
+            model_class = CheckupSettlementRecord
             for i, record_data in enumerate(parsed_data_rows):
                 row_doc_id = record_data.get("doc_id", f"unk_cs_doc_{i+1}"); logger.info(f"Processing CS record {i+1}/{parsed_data_rows_count}: {row_doc_id}");
                 try:
-                    transformed_list = apply_rules([record_data], rules, lookup_tables=self.lookup_tables)
+                    transformed_list = apply_rules([record_data], rules, model_class, lookup_tables=self.lookup_tables)
                     if not transformed_list: logger.warning(f"No data after rules for CS record {row_doc_id}."); continue
-                    transformed_record = transformed_list[0]; logger.debug(f"Transformed CS record {row_doc_id}: {transformed_record}")
-                    xml_string = generate_checkup_settlement_xml(transformed_record)
+
+                    transformed_model_instance = transformed_list[0]
+                    logger.debug(f"Transformed CS model instance {row_doc_id}: {transformed_model_instance}")
+                    if hasattr(transformed_model_instance, 'errors') and transformed_model_instance.errors:
+                         logger.warning(f"Rule application for CS {row_doc_id} resulted in errors: {transformed_model_instance.errors}")
+
+                    transformed_dict = transformed_model_instance.to_xml_dict()
+                    xml_string = generate_checkup_settlement_xml(transformed_dict)
                     is_valid, errors = validate_xml(xml_string, xsd_file_path)
                     if not is_valid:
                         logger.error(f"CS XML for {row_doc_id} FAILED validation: {errors}")
@@ -317,21 +355,28 @@ class Orchestrator:
             # Using a precise ISO format with UTC 'Z' for simplicity.
             current_time_iso = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S+0000")
 
-
+            model_class = GuidanceSettlementRecord
             for i, record_data in enumerate(parsed_data_rows):
                 row_doc_id = record_data.get("doc_id", f"unk_gs_doc_{i+1}"); logger.info(f"Processing GS record {i+1}/{parsed_data_rows_count}: {row_doc_id}");
                 try:
-                    transformed_list = apply_rules([record_data], rules, lookup_tables=self.lookup_tables)
+                    transformed_list = apply_rules([record_data], rules, model_class, lookup_tables=self.lookup_tables)
                     if not transformed_list: logger.warning(f"No data after rules for GS record {row_doc_id}."); continue
-                    transformed_record = transformed_list[0]; logger.debug(f"Transformed GS record {row_doc_id}: {transformed_record}")
 
-                    # Add documentIdRootOid if not present from rules, using a default or from config for GS docs
-                    if "documentIdRootOid" not in transformed_record and "documentId" in transformed_record: # "documentId" is the extension
+                    transformed_model_instance = transformed_list[0]
+                    logger.debug(f"Transformed GS model instance {row_doc_id}: {transformed_model_instance}")
+                    if hasattr(transformed_model_instance, 'errors') and transformed_model_instance.errors:
+                         logger.warning(f"Rule application for GS {row_doc_id} resulted in errors: {transformed_model_instance.errors}")
+
+                    transformed_dict = transformed_model_instance.to_xml_dict()
+
+                    # Add documentIdRootOid if not present from rules/model's to_xml_dict, using a default or from config for GS docs
+                    # This logic might be better placed in the rule engine or model's to_xml_dict if always needed.
+                    if "documentIdRootOid" not in transformed_dict and "documentIdExtension" in transformed_dict:
                         default_gs_doc_id_root = self.config.get("document_defaults",{}).get("guidance_settlement",{}).get("documentIdRootOid", "1.2.392.200119.6.1.GC.DEFAULT") # Example placeholder
-                        transformed_record["documentIdRootOid"] = default_gs_doc_id_root
-                        logger.debug(f"Added default documentIdRootOid for GS record {row_doc_id}: {default_gs_doc_id_root}")
+                        transformed_dict["documentIdRootOid"] = default_gs_doc_id_root
+                        logger.debug(f"Added default documentIdRootOid for GS record {row_doc_id} to dict: {default_gs_doc_id_root}")
 
-                    xml_string = generate_guidance_settlement_xml(transformed_record, current_time_iso)
+                    xml_string = generate_guidance_settlement_xml(transformed_dict, current_time_iso)
                     is_valid, errors = validate_xml(xml_string, xsd_file_path)
                     if not is_valid:
                         logger.error(f"GS XML for {row_doc_id} FAILED validation: {errors}")

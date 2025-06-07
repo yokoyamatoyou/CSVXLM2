@@ -1,19 +1,8 @@
 <?xml version='1.0' encoding='utf-8'?>
-<checkupClaim xmlns="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000161103.html" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000161103.html cc08_V08.xsd" docId="CS_DOC_001">
+<checkupClaim xmlns="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000161103.html" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000161103.html cc08_V08.xsd" docId="">
   <encounter>Checkup Encounter</encounter>
-  <subjectPerson>
-    <patientId root="1.2.392.200119.6.201"/>
-    <checkupOrgId root="1.2.392.200119.6.102" extension="ORG_CHK_001"/>
-    <insurerId root="1.2.392.200119.6.101" extension="INS001"/>
-  </subjectPerson>
-  <checkupCard>
-    <copaymentType code="1"/>
-  </checkupCard>
+  <subjectPerson/>
   <settlement>
-    <claimType code="1"/>
-    <commissionType code="1"/>
-    <totalCost value="15000"/>
-    <copaymentAmount value="1500"/>
-    <claimAmount value="13500"/>
+    <claimType/>
   </settlement>
 </checkupClaim>
