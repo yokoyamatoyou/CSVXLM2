@@ -114,3 +114,27 @@ During XML generation the program loads the corresponding schema from these
 folders and fails loudly if validation errors occur. If a schema exists in both
 locations, the deeper example path is preferred over the top-level `XSD/`
 directory.
+
+## Current Progress
+
+The XML generation layer is largely in place. The following generators have been
+implemented and validated against their XSD schemas:
+
+* `index.xml` and `summary.xml`
+* hc08 (health checkup CDA)
+* hg08 (health guidance CDA)
+* cc08 (checkup settlement)
+* gc08 (guidance settlement)
+
+### Remaining Work
+
+* Integrate the dataclass-based models with these generators.
+* Expand the rule engine to support more complex mappings.
+* Refactor the orchestrator to remove legacy dictionary paths.
+* Add unit tests covering real-world data samples.
+
+### Known Limitations / TODOs
+
+* CSV files without headers are not yet supported.
+* Several orchestrator calls still pass raw dictionaries to the generators.
+* Command-line options are minimal and may change as development continues.
