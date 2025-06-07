@@ -74,3 +74,43 @@ The application is configured to look for XSDs in these specific locations. The 
 
 ## Development Notes
 * The project is structured into several phases. Phase 2 (Rule Engine for complex transformations) is a significant upcoming part.
+
+## Phase 2 Progress
+
+Development of the rule engine has begun and several mapping scenarios have been
+verified through unit tests:
+
+* Direct field transfers from CSV to the intermediate model.
+* Lookup conversions that translate codes (for example, mapping gender strings to
+  code and OID values).
+* Date normalization based on specified format patterns.
+* Conditional property assignments depending on input values.
+* Error handling for unmapped values.
+* Multi-row mapping where multiple CSV rows are combined into a single record,
+  such as accumulating laboratory results for one patient.
+
+These tests confirm that the engine can populate the intermediate objects with
+all data required for later XML generation.
+
+## Phase 3 Plan
+
+Phase 3 implements XML generation for four profiles:
+
+* **hc08** – Specific health checkup CDA
+* **cc08** – Health checkup settlement
+* **hg08** – Specific health guidance CDA
+* **gc08** – Health guidance settlement
+
+Each generator builds an XML tree from the intermediate objects and validates it
+against the appropriate XSD.  The repository already contains the official XSD
+sets used for these validations.  The schemas are located in the following
+directories:
+
+* `XSD/` – Top-level directory containing the main XSD files and `coreschemas/`.
+* `5521111111_00280081_202405271_1/5521111111_00280081_202405271_1/XSD/` –
+  Example package layout with bundled XSDs that mirrors the final ZIP structure.
+
+During XML generation the program loads the corresponding schema from these
+folders and fails loudly if validation errors occur. If a schema exists in both
+locations, the deeper example path is preferred over the top-level `XSD/`
+directory.

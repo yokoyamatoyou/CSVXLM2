@@ -3,7 +3,10 @@
     "xsd_schemas": "data/xsd_schemas/",
     "input_csvs": "data/input_csvs/",
     "output_xmls": "data/output_xmls/",
-    "xsd_source_path_for_archive": ["data/xsd_schemas/", "data/xsd_schemas_official/"]
+    "xsd_source_path_for_archive": [
+      "5521111111_00280081_202405271_1/5521111111_00280081_202405271_1/XSD/",
+      "XSD/"
+    ]
   },
   "logging": {
     "log_file": "logs/app.log",
