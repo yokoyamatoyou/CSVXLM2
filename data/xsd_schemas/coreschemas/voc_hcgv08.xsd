@@ -1,5 +1,0 @@
-<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
-             targetNamespace="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000161103.html"
-             elementFormDefault="qualified">
-  <!-- Placeholder for vocabulary definitions -->
-</xs:schema>

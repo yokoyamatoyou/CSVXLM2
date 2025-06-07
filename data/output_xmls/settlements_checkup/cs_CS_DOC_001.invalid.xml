@@ -1,8 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<checkupClaim xmlns="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000161103.html" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000161103.html cc08_V08.xsd" docId="">
-  <encounter>Checkup Encounter</encounter>
-  <subjectPerson/>
-  <settlement>
-    <claimType/>
-  </settlement>
-</checkupClaim>

@@ -1,3 +1,0 @@
-doc_id,doc_creation_date,patient_mrn,patient_insurance_no,patient_family_name,patient_given_name,patient_gender_csv,patient_birth_date,author_institution_id,custodian_institution_id,guidance_start_date,guidance_end_date,guidance_program_name,hg_classification_code,bhv_change_stage_code,initial_interview_points,ongoing_support_sessions_count,final_eval_bmi
-HG_DOC_001,2023/12/01,P003,INS003,指導,良子,2,1978/07/20,AUTH_GUIDE_CTR,CUST_GUIDE_CTR,2023/11/01,2023/11/30,積極支援プログラム,1,2,180,3,22.5
-HG_DOC_002,2023/12/05,P004,INS004,保健,太郎,1,1965/02/10,AUTH_GUIDE_CTR,CUST_GUIDE_CTR,2023/11/05,2023/12/04,動機づけ支援ライト,2,1,80,1,24.0

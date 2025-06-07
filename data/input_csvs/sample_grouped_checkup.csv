@@ -1,5 +1,0 @@
-doc_id,doc_creation_date,patient_mrn,patient_family_name,patient_given_name,height_cm,weight_kg,group_id,parent_obs_code,parent_obs_display
-GRP_CDA_001,2023/10/01,P_GRP_001,Grouped,Patient,170,70,PANEL_01,GRP_CODE_1,Blood Pressure Panel
-GRP_CDA_001,2023/10/01,P_GRP_001,Grouped,Patient,170,70,PANEL_01,GRP_CODE_1,Blood Pressure Panel
-GRP_CDA_002,2023/10/02,P_GRP_002,Another,Grouping,160,60,PANEL_02,GRP_CODE_2,Metabolic Panel
-GRP_CDA_002,2023/10/02,P_GRP_002,Another,Grouping,160,60,PANEL_02,GRP_CODE_2,Metabolic Panel

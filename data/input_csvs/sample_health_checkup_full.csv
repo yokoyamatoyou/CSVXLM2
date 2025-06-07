@@ -1,3 +1,0 @@
-doc_id,doc_creation_date,patient_mrn,patient_insurance_no,patient_family_name,patient_given_name,patient_gender_csv,patient_birth_date,author_institution_id,custodian_institution_id,checkup_start_date,checkup_end_date,height_cm,weight_kg,waist_cm,bp_systolic,bp_diastolic,smoking_status_code
-CDA_DOC_001,2023/05/10,P001,INS001,Tokutei,Kenzo,1,1970/01/01,AUTH_HOSP,CUST_HOSP,2023/05/01,2023/05/01,170,65,85,120,80,1
-CDA_DOC_002,2023/06/15,P002,INS002,Shido,Hanako,2,1985/03/12,AUTH_CLINIC,CUST_CLINIC,2023/06/01,2023/06/01,160,55,75,110,70,3

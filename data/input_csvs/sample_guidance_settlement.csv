@@ -1,3 +1,0 @@
-doc_id,patient_mrn,guidance_org_code,insurer_no,guidance_level_code,timing_code,copayment_type_code,points_completed,points_intended,total_cost,copayment_amount,claim_amount
-GS_DOC_001,P003,GUIDE_CTR_001,INS003,1,1,1,180,180,18000,1000,17000
-GS_DOC_002,P004,GUIDE_CTR_002,INS004,2,3,2,80,80,8000,0,8000
