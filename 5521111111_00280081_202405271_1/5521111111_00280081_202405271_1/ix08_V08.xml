@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--対応仕様書：ix08_doc_v0104-->
+<index xmlns="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000161103.html" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000161103.html ./XSD/ix08_V08.xsd">
+  <!-- 種別 -->
+  <interactionType code="1" />
+  <!-- 作成年月日 -->
+  <creationTime value="20240527" />
+  <!-- 送付元機関） -->
+  <sender>
+    <id root="1.2.392.200119.6.102" extension="2813300114" />
+  </sender>
+  <!-- 送付先機関） -->
+  <receiver>
+    <id root="1.2.392.200119.6.101" extension="00280081" />
+  </receiver>
+  <!-- 実施区分 -->
+  <serviceEventType code="1" />
+  <!-- 総ファイル数 -->
+  <totalRecordCount value="8" />
+</index>

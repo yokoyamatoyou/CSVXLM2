@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<checkupClaim xmlns="http://tokuteikenshin.jp/checkup/2007" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://tokuteikenshin.jp/checkup/2007 ../XSD/cc08_V08.xsd">
+  <!-- 受診情報 -->
+  <encounter>
+    <!-- 実施区分 -->
+    <serviceEventType code="1" />
+  </encounter>
+  <!-- 受診者情報 -->
+  <subjectPerson>
+    <!-- 特定健診機関番号（特定健診機関番号） -->
+    <performerOrganization>
+      <id root="1.2.392.200119.6.102" extension="2813304249" />
+    </performerOrganization>
+    <!-- 被保険者証情報 -->
+    <insuranceCard>
+      <!-- 保険者番号（保険者番号） -->
+      <insurerNumber root="1.2.392.200119.6.101" extension="00280081" />
+      <!-- 被保険者記号（被保険者記号） -->
+      <!-- 被保険者番号（被保険者番号） -->
+      <number root="1.2.392.200119.6.205" extension="8210636" />
+    </insuranceCard>
+    <!-- 氏名-->
+    <name>ナカガワチエ</name>
+    <!-- 住所 -->
+    <addr>
+      <postalCode>664-0026</postalCode>伊丹市寺本５丁目４４７－３０</addr>
+    <!-- 生年月日 -->
+    <birthTime value="19540409" />
+    <!-- 性別コード -->
+    <administrativeGender code="2" />
+  </subjectPerson>
+  <!-- 特定健診受診券情報 -->
+  <checkupCard>
+    <!-- 特定健診受診券整理番号（特定健診受診券整理番号） -->
+    <id root="1.2.392.200119.6.209" extension="24100000037" />
+    <!-- 有効期限-->
+    <effectiveTime>
+      <high value="20250320" />
+    </effectiveTime>
+    <!-- 窓口負担（基本的な健診） -->
+    <chargeTypeBasic code="1">
+    </chargeTypeBasic>
+    <!-- 窓口負担（詳細な健診） -->
+    <chargeTypeDetail code="1">
+    </chargeTypeDetail>
+    <!-- 窓口負担（追加健診） -->
+    <chargeTypeOther code="1">
+    </chargeTypeOther>
+    <!-- 窓口負担（人間ドック） -->
+  </checkupCard>
+  <!-- 決済情報 -->
+  <settlement>
+    <!-- 請求区分コード-->
+    <claimType code="4" />
+    <!-- 委託料単価区分 -->
+    <commissionType code="1" />
+    <!-- 単価（基本的な健診） -->
+    <unitPriceBasic>
+      <amount value="9310" currency="JPY" />
+    </unitPriceBasic>
+    <!-- 単価とコード１（詳細な健診）） -->
+    <unitPriceDetail>
+      <amount value="0" currency="JPY" />
+      <observation code="4" />
+    </unitPriceDetail>
+    <!-- 単価とコード２（詳細な健診）） -->
+    <!-- 単価とコード３（詳細な健診）） -->
+    <!-- 単価とコード４（詳細な健診）） -->
+    <!-- 単価とコード（追加健診又は人間ドック） -->
+    <unitPriceOther>
+      <amount value="0" currency="JPY" />
+      <observation code="2A040000001930102" codeSystem="1.2.392.200119.6.1005" />
+    </unitPriceOther>
+    <unitPriceOther>
+      <amount value="0" currency="JPY" />
+      <observation code="2A030000001930101" codeSystem="1.2.392.200119.6.1005" />
+    </unitPriceOther>
+    <unitPriceOther>
+      <amount value="0" currency="JPY" />
+      <observation code="2A020000001930101" codeSystem="1.2.392.200119.6.1005" />
+    </unitPriceOther>
+    <unitPriceOther>
+      <amount value="0" currency="JPY" />
+      <observation code="9A110160700000011" codeSystem="1.2.392.200119.6.1005" />
+    </unitPriceOther>
+    <!-- end of unitPriceOther このコメント行は必須 -->
+    <!-- 窓口負担金額（基本的な健診） -->
+    <paymentForBasic>
+      <amount value="000000" currency="JPY" />
+    </paymentForBasic>
+    <!-- 窓口負担金額（詳細な健診） -->
+    <paymentForDetail>
+      <amount value="000000" currency="JPY" />
+    </paymentForDetail>
+    <!-- 窓口負担金額（追加健診又は人間ドック -->
+    <paymentForOther>
+      <amount value="000000" currency="JPY" />
+    </paymentForOther>
+    <!-- 単価（合計 -->
+    <unitAmount value="9310" currency="JPY" />
+    <!-- 窓口支払金額 -->
+    <paymentAmount value="0" currency="JPY" />
+    <!-- 集合契約時の他の健診側負担額 -->
+    <!-- 請求金額 -->
+    <claimAmount value="9310" currency="JPY" />
+  </settlement>
+</checkupClaim>
