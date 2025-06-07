@@ -38,10 +38,18 @@ This project automates the processing of Japanese "特定健診／特定保健�
     *   `xsd_schemas/`: Contains general XSD schemas (ix08, su08, cc08, gc08, hg08, and their coreschemas).
     *   `xsd_schemas_official/`: Contains official MHLW XSDs for HC08 (Health Checkup CDA) and its more comprehensive `coreschemas` (including base HL7 CDA schemas like `POCD_MT000040.xsd`).
 
-## Prerequisites
+## Environment Setup
 
-*   Python 3.x (developed with Python 3.10+ in mind).
-*   `lxml` library: Install using `pip install lxml`.
+The project targets **Python 3.10+**.  Install the required
+dependencies with:
+
+```bash
+pip install -r requirements.txt
+```
+
+This installs the `lxml` library which is required for XML generation
+and validation.  If you are running Python 3.6, also install the
+`dataclasses` backport.
 
 ## XSD File Setup (Crucial for Operation)
 
@@ -64,7 +72,8 @@ The application is configured to look for XSDs in these specific locations. The 
 
 ## Usage
 
-1.  Ensure all prerequisites (Python, lxml, XSD file setup) are met.
+1.  Install the dependencies listed in `requirements.txt` and ensure
+    the XSD files are placed as described above.
 2.  Run the main script from the project root directory:
     ```bash
     python src/main.py
@@ -73,7 +82,23 @@ The application is configured to look for XSDs in these specific locations. The 
 4.  Logs are written to `logs/app.log` (configurable in `config_rules/config.json`).
 
 ## Development Notes
-* The project is structured into several phases. Phase 2 (Rule Engine for complex transformations) is a significant upcoming part.
+
+### Project Roadmap
+
+The implementation is divided into five phases:
+
+1. **Phase 1 – CSV Parsing**
+   * Support various delimiters and encodings (UTF‑8/Shift_JIS).
+   * Validate the presence of required columns.
+2. **Phase 2 – Rule Engine**
+   * Load mapping rules from JSON/YAML files.
+   * Perform code lookups and date conversions to populate intermediate objects.
+3. **Phase 3 – Individual XML Generation**
+   * Generate HC08, HG08, CC08 and GC08 XML documents and validate them against XSDs.
+4. **Phase 4 – index.xml / summary.xml**
+   * Aggregate counts and totals from the generated XMLs to produce index and summary files.
+5. **Phase 5 – ZIP Packaging**
+   * Assemble the XML files and schemas into a submission archive with the required directory structure.
 
 ## Phase 2 Progress
 
