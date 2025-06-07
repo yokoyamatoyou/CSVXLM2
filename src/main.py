@@ -7,8 +7,9 @@ from csv_to_xml_converter.orchestrator import Orchestrator
 DEFAULT_CONFIG_FILE = "config_rules/config.json"
 # DUMMY_XSD_BASE_PATH = "data/xsd_schemas_official/" # Commented out/Removed
 # XSD_BASE_TO_USE = DUMMY_XSD_BASE_PATH # Commented out/Removed
-XSD_OFFICIAL_BASE = "data/xsd_schemas_official/"
-XSD_GENERAL_BASE = "data/xsd_schemas/"
+DEEP_XSD_BASE = "5521111111_00280081_202405271_1/5521111111_00280081_202405271_1/XSD/"
+XSD_OFFICIAL_BASE = DEEP_XSD_BASE
+XSD_GENERAL_BASE = DEEP_XSD_BASE
 
 # Define output paths for aggregated index and summary
 DEFAULT_INDEX_OUTPUT_XML = "data/output_xmls/index.xml" # Changed from ix08_output_V08.xml
