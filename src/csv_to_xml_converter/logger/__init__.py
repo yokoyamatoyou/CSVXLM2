@@ -56,42 +56,4 @@ def setup_logger(config: dict = None, logger_name: str = DEFAULT_LOGGER_NAME) ->
     logger.info(f"Logger '{logger_name}' initialized. Level: {log_level_str}. Log file: {log_file_path if 'file_handler' in locals() else 'N/A'}")
     return logger
 
-if __name__ == '__main__':
-    print("Running logger module self-test (simplified)...")
 
-    # Mock config for basic testing
-    mock_config = {
-        "logging": {
-            "log_file": "logs/test_logger_simplified.log",
-            "log_level": "DEBUG"
-        }
-    }
-
-    # Ensure logs directory exists for the test log file
-    test_log_dir = os.path.dirname(mock_config["logging"]["log_file"])
-    if not os.path.exists(test_log_dir):
-        os.makedirs(test_log_dir, exist_ok=True)
-
-    print(f"--- Test with mock configuration ---")
-    test_logger = setup_logger(config=mock_config, logger_name="simplified_test_logger")
-    test_logger.debug("This is a DEBUG message.")
-    test_logger.info("This is an INFO message.")
-
-    actual_log_file = mock_config["logging"]["log_file"]
-    if os.path.exists(actual_log_file):
-        print(f"Test log file created: {actual_log_file}")
-        # Basic check: read the log file and see if it contains our messages
-        try:
-            with open(actual_log_file, 'r') as f_log:
-                log_content = f_log.read()
-                if "DEBUG message" in log_content and "INFO message" in log_content:
-                    print("Log content verified.")
-                else:
-                    print("Error: Log content mismatch or missing.")
-        except Exception as e_read:
-            print(f"Error reading test log file: {e_read}")
-
-    else:
-        print(f"Error: Test log file NOT created at {actual_log_file}")
-
-    print("Logger module self-test (simplified) completed.")
