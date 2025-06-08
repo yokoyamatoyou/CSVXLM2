@@ -1,0 +1,10 @@
+[
+  {"rule_type": "default_value", "output_field": "serviceEventTypeCode", "value": "AGG_SUMMARY"},
+  {"rule_type": "default_value", "output_field": "serviceEventTypeCodeSystem", "value": "1.2.392.100000.6.9999.1"},
+  {"rule_type": "default_value", "output_field": "serviceEventTypeDisplayName", "value": "集計サマリー"},
+  {"rule_type": "data_type_conversion", "input_field": "total_subjects", "output_field": "totalSubjectCount", "conversion_type": "to_integer"},
+  {"rule_type": "data_type_conversion", "input_field": "total_cost", "output_field": "totalCostAmount_value", "conversion_type": "to_integer"},
+  {"rule_type": "default_value", "output_field": "totalCostAmount_currency", "value": "JPY"},
+  {"rule_type": "data_type_conversion", "input_field": "total_claim", "output_field": "totalClaimAmount_value", "conversion_type": "to_integer"},
+  {"rule_type": "default_value", "output_field": "totalClaimAmount_currency", "value": "JPY"}
+]
