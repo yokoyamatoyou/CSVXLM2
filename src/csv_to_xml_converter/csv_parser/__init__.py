@@ -30,11 +30,33 @@ def parse_csv(
     escapechar: Optional[str] = None,
     doublequote: bool = True,
 ) -> List[Dict[str, str]]:
-    """Parses a CSV from a file path or string content.
+    """Parses a CSV from a file path or from string content.
 
     Providing ``header_override`` allows parsing files that lack a header
     row. ``required_columns`` are validated against either the detected
     header or the supplied override.
+
+    Args:
+        source: Path to the CSV file or the CSV data itself.
+        delimiter: Character that separates fields. Defaults to ",".
+        encoding: Encoding used to read the file. Defaults to "utf-8".
+        required_columns: Column names that must be present in the header.
+        skip_comments: When ``True`` lines starting with ``#`` are ignored.
+        header_override: Column names to use when the CSV has no header row.
+        quotechar: Character used to quote fields.
+        escapechar: Character used to escape the delimiter.
+        doublequote: Whether two consecutive quotechars represent one.
+
+    Returns:
+        A list of dictionaries representing rows in the CSV. If no header is
+        found and ``header_override`` is not supplied, an empty list is
+        returned.
+
+    Raises:
+        FileNotFoundError: If ``source`` is a file path that does not exist.
+        UnicodeDecodeError: If ``encoding`` cannot decode the file contents.
+        CSVParsingError: For I/O errors while reading the file or when
+            ``required_columns`` are missing.
     """
     file_obj: io.TextIOBase
     is_likely_path = not ("\n" in source or "\r" in source)
