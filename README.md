@@ -4,6 +4,12 @@
 
 This project automates the processing of Japanese "特定健診／特定保健指導" (Specific Health Checkup / Specific Health Guidance) data. It takes CSV files as input, transforms the data based on configurable rules, generates various types of XML documents (hc08, hg08, cc08, gc08), aggregates summary information into `index.xml` and `summary.xml`, and packages all outputs into a validated ZIP archive.
 
+## Specification
+
+The latest Japanese specification for the conversion workflow is included as
+`CSVからXML変換詳細手順説明_utf8.txt`, which is a UTF‑8 encoded copy of the
+original Shift_JIS file `CSVからXML変換詳細手順説明.txt`.
+
 ## Key Features
 
 *   **CSV Parsing:** Flexible CSV reader supporting various encodings (UTF-8, Shift_JIS) and delimiters, with mandatory column validation. Header rows can be supplied via `column_names` when calling `parse_csv_from_profile`, allowing CSVs without headers to be parsed.
