@@ -77,6 +77,14 @@ For the application to run correctly and perform XSD validations, the necessary 
 
 The application is configured to look for XSDs in these specific locations. The ZIP packaging process also sources XSDs from these directories, prioritizing `data/xsd_schemas_official/` for any overlapping file names (like `coreschemas/datatypes_hcgv08.xsd`).
 
+If the path `5521111111_00280081_202405271_1/5521111111_00280081_202405271_1/XSD/` referenced in `config_rules/config.json` does not exist, unzip the archive `data/5521111111_00280081_202405271_1.zip` from the project root:
+
+```bash
+unzip data/5521111111_00280081_202405271_1.zip
+```
+
+This will create the necessary folder hierarchy containing official schema files used during archive validation.
+
 ## Usage
 
 1.  Install the dependencies listed in `requirements.txt` and ensure
