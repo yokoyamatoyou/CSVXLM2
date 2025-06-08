@@ -21,8 +21,6 @@ from .xml_parsing_utils import (
 )
 
 
-logger = logging.getLogger(__name__)
-
 # --- Namespaces (Consistent with successful prior states) ---
 MHLW_NS_URL = "https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000161103.html"
 XSI_NS = "http://www.w3.org/2001/XMLSchema-instance"
