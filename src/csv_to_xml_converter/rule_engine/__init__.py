@@ -54,6 +54,28 @@ CALCULATION_FUNCTIONS = {
     # Add other calculation functions here as needed
 }
 
+def round_number(v: Any, digits: int = 0) -> Optional[float]:
+    """Round numeric values according to specification.
+
+    Parameters
+    ----------
+    v : Any
+        The value to round. Will be converted to ``float`` if possible.
+    digits : int, optional
+        Number of digits after the decimal point.
+
+    Returns
+    -------
+    Optional[float]
+        The rounded number or ``None`` if ``v`` is ``None`` or empty.
+    """
+    if v is None or str(v).strip() == "":
+        return None
+    try:
+        return round(float(str(v)), digits)
+    except (ValueError, TypeError) as e:
+        raise RuleApplicationError(f"Round conversion error: {v}") from e
+
 class RuleApplicationError(Exception): pass
 
 def to_integer(v: Any) -> Optional[int]:
@@ -149,6 +171,28 @@ def _apply_single_rule(rule: Dict[str, Any], i_rec: Dict[str, Any], output_targe
             else: raise RuleApplicationError(f"Unknown conversion_type: {conv_type}")
         if is_dict_target: output_target[of] = converted_value
         else: _set_nested_attr(output_target, of, converted_value)
+    elif rt == "round_number":
+        digits = int(rule.get("digits", 0))
+        val = i_rec.get(inf)
+        converted_value = None
+        if val is not None and str(val).strip() != "":
+            converted_value = round_number(val, digits)
+        if is_dict_target:
+            output_target[of] = converted_value
+        else:
+            _set_nested_attr(output_target, of, converted_value)
+    elif rt == "map_missing_values":
+        val = i_rec.get(inf)
+        missing = rule.get("missing_values", [])
+        mapped_val = rule.get("mapped_value")
+        if val is None or str(val).strip() == "" or str(val) in missing:
+            result_val = mapped_val
+        else:
+            result_val = val
+        if is_dict_target:
+            output_target[of] = result_val
+        else:
+            _set_nested_attr(output_target, of, result_val)
     elif rt == "lookup_value":
         if not inf: logger.warning(f"Lookup for rule missing input_field: {rule}"); return # Removed 'of' as it might not be present
 

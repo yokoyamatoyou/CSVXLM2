@@ -181,3 +181,42 @@ def test_index_and_summary_rules_files():
     assert sum_model.serviceEventTypeCode == "1"
     assert sum_model.totalSubjectCount_value == 10
     assert sum_model.totalCostAmount_currency == "JPY"
+
+
+def test_round_number_rule():
+    @dataclass
+    class RoundModel(IntermediateRecord):
+        rounded: Optional[float] = None
+
+    rules = [
+        {
+            "rule_type": "round_number",
+            "input_field": "raw",
+            "digits": 1,
+            "output_field": "rounded",
+        }
+    ]
+
+    data = [{"raw": "12.345"}]
+    result = apply_rules(data, rules, model_class=RoundModel, lookup_tables={})
+    assert result[0].rounded == 12.3
+
+
+def test_map_missing_values_rule():
+    @dataclass
+    class MissingModel(IntermediateRecord):
+        normalized: Optional[str] = None
+
+    rules = [
+        {
+            "rule_type": "map_missing_values",
+            "input_field": "raw",
+            "output_field": "normalized",
+            "missing_values": ["999", "9H"],
+            "mapped_value": None,
+        }
+    ]
+
+    data = [{"raw": "999"}]
+    result = apply_rules(data, rules, model_class=MissingModel, lookup_tables={})
+    assert result[0].normalized is None

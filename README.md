@@ -13,7 +13,7 @@ original Shift_JIS file `CSVからXML変換詳細手順説明.txt`.
 ## Key Features
 
 *   **CSV Parsing:** Flexible CSV reader supporting various encodings (UTF-8, Shift_JIS) and delimiters, with mandatory column validation. Header rows can be supplied via `column_names` when calling `parse_csv_from_profile`, allowing CSVs without headers to be parsed.
-*   **Rule-Based Transformation:** Maps CSV data to intermediate models using external JSON rule files. (Note: Phase 2 for full rule engine implementation is pending).
+*   **Rule-Based Transformation:** Maps CSV data to intermediate models using external JSON rule files. The rule engine now supports dataclass targets, rounding of numeric values, and standardized handling of missing data.
 *   **XML Generation:** Creates multiple XML types:
     *   Health Checkup CDA (hc08)
     *   Health Guidance CDA (hg08)
@@ -129,8 +129,7 @@ The implementation is divided into five phases:
 
 ## Phase 2 Progress
 
-Development of the rule engine has begun and several mapping scenarios have been
-verified through unit tests:
+Phase 2 is complete. The rule engine loads mapping rules, performs lookups, converts dates and numbers, and integrates seamlessly with the dataclass-based models used by the XML generators. Key features verified through unit tests include:
 
 * Direct field transfers from CSV to the intermediate model.
 * Lookup conversions that translate codes (for example, mapping gender strings to
@@ -141,8 +140,7 @@ verified through unit tests:
 * Multi-row mapping where multiple CSV rows are combined into a single record,
   such as accumulating laboratory results for one patient.
 
-These tests confirm that the engine can populate the intermediate objects with
-all data required for later XML generation.
+These tests confirm that the engine can populate the intermediate objects with all data required for later XML generation. Additional rules handle rounding of numeric values and normalization of missing value markers as described in the specification.
 
 ## Phase 3 Plan
 
@@ -180,8 +178,6 @@ implemented and validated against their XSD schemas:
 
 ### Remaining Work
 
-* Integrate the dataclass-based models with these generators.
-* Expand the rule engine to support more complex mappings.
 * Refactor the orchestrator to remove legacy dictionary paths.
 * Add unit tests covering real-world data samples.
 
