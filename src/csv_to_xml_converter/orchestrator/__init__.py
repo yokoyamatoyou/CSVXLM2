@@ -64,28 +64,31 @@ class Orchestrator:
         effective_default = self.csv_profiles.get("default", default_p)
         return self.csv_profiles.get(profile_name, effective_default)
 
-    def generate_aggregated_index_xml(self, data_xml_files: List[str], claims_xml_files: List[str], output_xml_path: str, xsd_file_path: str) -> bool:
+    def generate_aggregated_index_xml(self, data_xml_files: List[str], claims_xml_files: List[str], output_xml_path: str, xsd_file_path: str, rules_file_path: Optional[str] = None) -> bool:
+        """Generate index.xml using aggregation and rule based transformation."""
         logger.info(f"Generating aggregated index.xml to {output_xml_path}")
         try:
             total_record_count = len(data_xml_files) + len(claims_xml_files)
-            creation_time = datetime.now(timezone.utc).strftime("%Y%m%d") # Changed to YYYYMMDD for index.xml
+            creation_time = datetime.now(timezone.utc).strftime("%Y%m%d")
 
-            index_defaults = self.config.get("index_defaults", {})
-
-            transformed_data = {
-                "interactionType": index_defaults.get("interactionType", "1"), # Example default
-                "creationTime": creation_time,
-                "senderIdRootOid": index_defaults.get("senderIdRootOid"),
-                "senderIdExtension": index_defaults.get("senderIdExtension"),
-                "receiverIdRootOid": index_defaults.get("receiverIdRootOid"),
-                "receiverIdExtension": index_defaults.get("receiverIdExtension"),
-                "serviceEventType": index_defaults.get("serviceEventType", "1"), # Example default
-                "totalRecordCount": str(total_record_count)
+            aggregation_input = {
+                "creation_date": creation_time,
+                "record_count": total_record_count,
             }
 
-            missing_required_fields = [k for k,v in transformed_data.items() if v is None and k in ["senderIdRootOid", "senderIdExtension", "receiverIdRootOid", "receiverIdExtension"]]
+            if not rules_file_path:
+                rules_file_path = self.config.get("rule_files", {}).get("index_rules")
+
+            transformed_data = aggregation_input
+            if rules_file_path and Path(rules_file_path).exists():
+                rules = load_rules(rules_file_path)
+                transformed_list = apply_rules([aggregation_input], rules, model_class=dict, lookup_tables=self.lookup_tables)
+                if transformed_list:
+                    transformed_data = transformed_list[0]
+
+            missing_required_fields = [k for k in ["senderIdRootOid", "senderIdExtension", "receiverIdRootOid", "receiverIdExtension"] if k not in transformed_data or transformed_data.get(k) is None]
             if missing_required_fields:
-                logger.error(f"Missing required fields for index.xml from config's index_defaults: {missing_required_fields}")
+                logger.error(f"Missing required fields for index.xml: {missing_required_fields}")
                 return False
 
             xml_string = generate_index_xml(transformed_data)
@@ -105,17 +108,16 @@ class Orchestrator:
             logger.error(f"Error generating aggregated index.xml: {e}", exc_info=True)
             return False
 
-    def generate_aggregated_summary_xml(self, claims_xml_files: List[str], data_xml_files: List[str], output_xml_path: str, xsd_file_path: str) -> bool:
+    def generate_aggregated_summary_xml(self, claims_xml_files: List[str], data_xml_files: List[str], output_xml_path: str, xsd_file_path: str, rules_file_path: Optional[str] = None) -> bool:
+        """Generate summary.xml from aggregated claim amounts and subject counts."""
         logger.info(f"Generating aggregated summary.xml to {output_xml_path}")
         try:
             total_subject_count = 0
-            for cda_file in data_xml_files: # data_xml_files are CDA files (HC08, HG08)
+            for cda_file in data_xml_files:
                 total_subject_count += get_subject_count_from_cda(cda_file)
 
             total_cost_amount = 0.0
-            total_payment_amount = 0.0 # Assuming payment = claim for now if not distinct
             total_claim_amount = 0.0
-            total_payment_by_other_program = 0.0 # Assuming 0 for now
 
             for claim_file in claims_xml_files:
                 # Determine if it's CC08 or GC08 by filename pattern or try parsing for specific roots
@@ -126,7 +128,6 @@ class Orchestrator:
                     total_claim_amount += amount_cc
                     # Assuming cost and payment are same as claim for CC08 for this example
                     total_cost_amount += amount_cc
-                    total_payment_amount += amount_cc
                     logger.debug(f"Processed CC08 {claim_file}, amount: {amount_cc}")
                     continue # Move to next file
 
@@ -135,32 +136,23 @@ class Orchestrator:
                     total_claim_amount += amount_gc
                     # Assuming cost and payment are same as claim for GC08
                     total_cost_amount += amount_gc
-                    total_payment_amount += amount_gc
                     logger.debug(f"Processed GC08 {claim_file}, amount: {amount_gc}")
 
-            summary_defaults = self.config.get("summary_defaults", {})
-            # Amounts in JPY are typically integers (no decimals) in XML.
-            # The generator expects strings for values in MO type.
-            transformed_data = {
-                "serviceEventTypeCode": summary_defaults.get("serviceEventTypeCode", "EVENT_CODE"), # Example
-                "serviceEventTypeCodeSystem": summary_defaults.get("serviceEventTypeCodeSystem", "EVENT_CS"), # Example
-                "serviceEventTypeDisplayName": summary_defaults.get("serviceEventTypeDisplayName", "Service Event"), # Example
-                "totalSubjectCount_value": str(total_subject_count),
-                "totalCostAmountValue": str(int(round(total_cost_amount))), # Round and convert to int, then str
-                "totalCostAmount_currency": "JPY",
-                "totalPaymentAmountValue": str(int(round(total_payment_amount))),
-                "totalPaymentAmount_currency": "JPY",
-                "totalClaimAmountValue": str(int(round(total_claim_amount))),
-                "totalClaimAmount_currency": "JPY",
-                "totalPaymentByOtherProgramValue": str(int(round(total_payment_by_other_program))),
-                "totalPaymentByOtherProgram_currency": "JPY",
+            if not rules_file_path:
+                rules_file_path = self.config.get("rule_files", {}).get("summary_rules")
+
+            aggregation_input = {
+                "total_subjects": int(total_subject_count),
+                "total_cost": int(round(total_cost_amount)),
+                "total_claim": int(round(total_claim_amount)),
             }
 
-            # Handle case where totalPaymentByOtherProgram is zero and shouldn't be included
-            if int(round(total_payment_by_other_program)) == 0:
-                del transformed_data["totalPaymentByOtherProgramValue"]
-                del transformed_data["totalPaymentByOtherProgram_currency"]
-                # The generate_summary_xml also checks for `totalPaymentByOtherProgramValue` presence
+            transformed_data = aggregation_input
+            if rules_file_path and Path(rules_file_path).exists():
+                rules = load_rules(rules_file_path)
+                transformed_list = apply_rules([aggregation_input], rules, model_class=dict, lookup_tables=self.lookup_tables)
+                if transformed_list:
+                    transformed_data = transformed_list[0]
 
             xml_string = generate_summary_xml(transformed_data)
             is_valid, errors = validate_xml(xml_string, xsd_file_path)
