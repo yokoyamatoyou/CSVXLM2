@@ -3,10 +3,8 @@
 XML Generator with entryRelationship support for CDA and restored full generators.
 """
 from lxml import etree
-from typing import Dict, Any, Optional, List
-import os # Make sure os is imported
-import sys
-import uuid
+from typing import Dict, Any, Optional
+import os  # Make sure os is imported
 import logging
 
 logger = logging.getLogger(__name__)
@@ -17,8 +15,23 @@ from . import xml_parsing_utils
 from .xml_parsing_utils import (
     get_claim_amount_from_cc08,
     get_claim_amount_from_gc08,
-    get_subject_count_from_cda
+    get_subject_count_from_cda,
 )
+
+__all__ = [
+    "generate_index_xml",
+    "generate_summary_xml",
+    "generate_health_checkup_cda",
+    "generate_health_guidance_cda",
+    "generate_checkup_settlement_xml",
+    "generate_guidance_settlement_xml",
+    "get_claim_amount_from_cc08",
+    "get_claim_amount_from_gc08",
+    "get_subject_count_from_cda",
+]
+
+# Ensure submodule is exported for package consumers
+xml_parsing_utils
 
 
 # --- Namespaces (Consistent with successful prior states) ---
@@ -67,7 +80,8 @@ def _create_int_element(parent_el: etree._Element, el_name: str, item_data: Dict
     val_key = f"{val_key_prefix}_value" if val_key_prefix else "value"
     val = item_data.get(val_key)
     if val is not None:
-        int_el = etree.SubElement(parent_el, el_name); int_el.set("value", _str_or_default(val))
+        int_el = etree.SubElement(parent_el, el_name)
+        int_el.set("value", _str_or_default(val))
         return int_el
     return None
 
@@ -76,7 +90,8 @@ def _create_mo_element(parent_el: etree._Element, el_name: str, item_data: Dict[
     currency_key = f"{val_key_prefix}{currency_key_suffix.capitalize()}" if val_key_prefix else currency_key_suffix
     val = item_data.get(val_key)
     if val is not None:
-        mo_el = etree.SubElement(parent_el, el_name); mo_el.set("value", _str_or_default(val))
+        mo_el = etree.SubElement(parent_el, el_name)
+        mo_el.set("value", _str_or_default(val))
         mo_el.set("currency", _str_or_default(item_data.get(currency_key), default_currency))
         return mo_el
     return None
@@ -125,7 +140,8 @@ def _populate_cda_header(doc: etree._Element, transformed_data: Dict[str, Any], 
         _create_cd_element(doc, "confidentialityCode", transformed_data, "confidentiality")
         etree.SubElement(doc, "languageCode").set("code", _str_or_default(transformed_data.get("languageCode"), "ja-JP"))
 
-        rt_el = etree.SubElement(doc, "recordTarget"); pr_el = etree.SubElement(rt_el, "patientRole")
+        rt_el = etree.SubElement(doc, "recordTarget")
+        pr_el = etree.SubElement(rt_el, "patientRole")
         _create_ii_element(pr_el, "id", transformed_data, "patientIdMrn")
         if transformed_data.get("patientIdInsuranceNoRootOid") or transformed_data.get("patientIdInsuranceNoExtension"):
             _create_ii_element(pr_el, "id", transformed_data, "patientIdInsuranceNo")
@@ -136,14 +152,15 @@ def _populate_cda_header(doc: etree._Element, transformed_data: Dict[str, Any], 
         _create_cd_element(patient_el, "administrativeGenderCode", transformed_data, "patientGender")
         etree.SubElement(patient_el, "birthTime").set("value", _str_or_default(transformed_data.get("patientBirthTimeValue")))
 
-        auth_el = etree.SubElement(doc, "author"); asgn_auth_el = etree.SubElement(auth_el, "assignedAuthor")
+        auth_el = etree.SubElement(doc, "author")
+        asgn_auth_el = etree.SubElement(auth_el, "assignedAuthor")
         _create_ii_element(asgn_auth_el, "id", transformed_data, "authorId")
 
-        cust_el = etree.SubElement(doc, "custodian"); asgn_cust_el = etree.SubElement(cust_el, "assignedCustodian")
+        cust_el = etree.SubElement(doc, "custodian")
+        asgn_cust_el = etree.SubElement(cust_el, "assignedCustodian")
         rep_cust_org_el = etree.SubElement(asgn_cust_el, "representedCustodianOrganization")
         _create_ii_element(rep_cust_org_el, "id", transformed_data, "custodianId")
 
-        # Moved documentationOf block to the end of header population, before exception handling # This comment is now outdated. documentationOf is after custodian.
 
         if document_profile_type != "HC08": # Skip documentationOf entirely for HC08
             logger.debug(f"Profile {document_profile_type}: Generating documentationOf section.")
@@ -196,39 +213,59 @@ def _populate_cda_header(doc: etree._Element, transformed_data: Dict[str, Any], 
 
 # --- CDA Observation Helper Functions ---
 def _create_observation_pq(parent_el: etree._Element, item_data: Dict[str, Any], item_prefix: str):
-    code_key=f"{item_prefix}Code" if item_prefix else "code"; val_key=f"{item_prefix}_value" if item_prefix else "value"
+    code_key = f"{item_prefix}Code" if item_prefix else "code"
+    val_key = f"{item_prefix}_value" if item_prefix else "value"
     if item_data.get(val_key) is None and item_data.get(code_key) is None : return
     obs_el = etree.SubElement(parent_el, "observation", classCode="OBS", moodCode="EVN")
     _create_cd_element(obs_el, "code", item_data, item_prefix)
     if item_data.get(val_key) is not None:
-        val_el = etree.SubElement(obs_el, "value"); val_el.set(f"{{{XSI_NS}}}type", "dt:PQ")
+        val_el = etree.SubElement(obs_el, "value")
+        val_el.set(f"{{{XSI_NS}}}type", "dt:PQ")
         val_el.set("value", _str_or_default(item_data.get(val_key)))
         val_el.set("unit", _str_or_default(item_data.get(f"{item_prefix}_unit" if item_prefix else "unit")))
 
 def _create_observation_cd(parent_el: etree._Element, item_data: Dict[str, Any], item_prefix: str):
-    obs_code_key=f"{item_prefix}_item_code" if item_prefix else "code"; val_code_key=f"{item_prefix}_code" if item_prefix else "value_code"
+    obs_code_key = f"{item_prefix}_item_code" if item_prefix else "code"
+    val_code_key = f"{item_prefix}_code" if item_prefix else "value_code"
     if item_data.get(val_code_key) is None and item_data.get(obs_code_key) is None: return
     obs_el = etree.SubElement(parent_el, "observation", classCode="OBS", moodCode="EVN")
     _create_cd_element(obs_el, "code", {"code":item_data.get(obs_code_key), "codeSystem":item_data.get(f"{item_prefix}_item_codeSystem" if item_prefix else "codeSystem"), "displayName":item_data.get(f"{item_prefix}_item_displayName" if item_prefix else "displayName")}, "")
     if item_data.get(val_code_key) is not None:
-        val_el = etree.SubElement(obs_el, "value"); val_el.set(f"{{{XSI_NS}}}type", "dt:CD")
-        _create_cd_element(val_el, "", {"code":item_data.get(val_code_key), "codeSystem":item_data.get(f"{item_prefix}_codeSystem" if item_prefix else "value_codeSystem"), "displayName":item_data.get(f"{item_prefix}_displayName" if item_prefix else "value_displayName")}, "")
+        val_el = etree.SubElement(obs_el, "value")
+        val_el.set(f"{{{XSI_NS}}}type", "dt:CD")
+        _create_cd_element(
+            val_el,
+            "",
+            {
+                "code": item_data.get(val_code_key),
+                "codeSystem": item_data.get(
+                    f"{item_prefix}_codeSystem" if item_prefix else "value_codeSystem"
+                ),
+                "displayName": item_data.get(
+                    f"{item_prefix}_displayName" if item_prefix else "value_displayName"
+                ),
+            },
+            "",
+        )
 
 
 def _create_observation_int(parent_el: etree._Element, item_data: Dict[str, Any], item_prefix: str):
-    code_key=f"{item_prefix}_code" if item_prefix else "code"; val_key=f"{item_prefix}_value" if item_prefix else "value"
+    code_key = f"{item_prefix}_code" if item_prefix else "code"
+    val_key = f"{item_prefix}_value" if item_prefix else "value"
     if item_data.get(val_key) is None and item_data.get(code_key) is None : return
     obs_el = etree.SubElement(parent_el, "observation", classCode="OBS", moodCode="EVN")
     _create_cd_element(obs_el, "code", item_data, item_prefix)
     if item_data.get(val_key) is not None:
-        val_el = etree.SubElement(obs_el, "value"); val_el.set(f"{{{XSI_NS}}}type", "dt:INT")
+        val_el = etree.SubElement(obs_el, "value")
+        val_el.set(f"{{{XSI_NS}}}type", "dt:INT")
         val_el.set("value", _str_or_default(item_data.get(val_key)))
 
 def generate_health_checkup_cda(transformed_data: Dict[str, Any]) -> etree._Element: # Merged with ER logic
     doc = etree.Element("ClinicalDocument", nsmap=NSMAP_HL7_DEFAULT)
     doc.set(f"{{{XSI_NS}}}schemaLocation", f"{HL7_V3_NS} hc08_V08.xsd {MHLW_NS_URL} coreschemas/datatypes_hcgv08.xsd")
     _populate_cda_header(doc, transformed_data, document_profile_type="HC08")
-    body_comp = etree.SubElement(doc, "component", typeCode="COMP"); structured_body = etree.SubElement(body_comp, "structuredBody")
+    body_comp = etree.SubElement(doc, "component", typeCode="COMP")
+    structured_body = etree.SubElement(body_comp, "structuredBody")
 
     # Assume one main section for results for now
     results_sect_comp = etree.SubElement(structured_body, "component")
@@ -261,10 +298,15 @@ def generate_health_checkup_cda(transformed_data: Dict[str, Any]) -> etree._Elem
     # Process standalone observations (ensure they are not already part of ER groups by checking a flag or specific keys)
     # This part needs to be robust to avoid duplicating data already processed by ER groups.
     # For now, using a simple check for common standalone items if their specific keys exist.
-    if "item_height_value" in transformed_data and not any(g.get("parent_obs_data",{}).get("code") == "SOME_HEIGHT_PANEL_CODE" for g in transformed_data.get("examination_results_er_group",[])): # Example check
-        entry_el = etree.SubElement(results_sect, "entry", typeCode="DRIV"); _create_observation_pq(entry_el, transformed_data, "item_height")
-    if "item_weight_value" in transformed_data: # similar check
-        entry_el = etree.SubElement(results_sect, "entry", typeCode="DRIV"); _create_observation_pq(entry_el, transformed_data, "item_weight")
+    if "item_height_value" in transformed_data and not any(
+        g.get("parent_obs_data", {}).get("code") == "SOME_HEIGHT_PANEL_CODE"
+        for g in transformed_data.get("examination_results_er_group", [])
+    ):  # Example check
+        entry_el = etree.SubElement(results_sect, "entry", typeCode="DRIV")
+        _create_observation_pq(entry_el, transformed_data, "item_height")
+    if "item_weight_value" in transformed_data:  # similar check
+        entry_el = etree.SubElement(results_sect, "entry", typeCode="DRIV")
+        _create_observation_pq(entry_el, transformed_data, "item_weight")
     # ... and so on for other known single items ...
 
     return doc
@@ -274,7 +316,8 @@ def generate_health_guidance_cda(transformed_data: Dict[str, Any]) -> etree._Ele
     doc.set(f"{{{XSI_NS}}}schemaLocation", f"{HL7_V3_NS} hg08_V08.xsd {MHLW_NS_URL} coreschemas/datatypes_hcgv08.xsd")
     _populate_cda_header(doc, transformed_data, document_profile_type="HG08")
     # Simplified body for now -  needs full structure similar to HC CDA if ER groups are used here too
-    body_comp = etree.SubElement(doc, "component", typeCode="COMP"); structured_body = etree.SubElement(body_comp, "structuredBody")
+    body_comp = etree.SubElement(doc, "component", typeCode="COMP")
+    structured_body = etree.SubElement(body_comp, "structuredBody")
     common_info_sect_comp = etree.SubElement(structured_body, "component") # Example section
     common_info_sect = etree.SubElement(common_info_sect_comp, "section")
     _create_cd_element(common_info_sect, "code", transformed_data, "sectionCode_HGCommonInfo")
@@ -302,15 +345,18 @@ def generate_checkup_settlement_xml(transformed_data: Dict[str, Any]) -> str: # 
     # Manual creation for MO-like fields in CC08 that don't allow @currency
     total_cost_val = transformed_data.get("totalCostValue")
     if total_cost_val is not None:
-        tc_el = etree.SubElement(settlement_el, f"{{{MHLW_NS_URL}}}totalCost"); tc_el.set("value", _str_or_default(total_cost_val))
+        tc_el = etree.SubElement(settlement_el, f"{{{MHLW_NS_URL}}}totalCost")
+        tc_el.set("value", _str_or_default(total_cost_val))
 
     copay_val = transformed_data.get("copaymentAmountValue")
     if copay_val is not None:
-        cp_el = etree.SubElement(settlement_el, f"{{{MHLW_NS_URL}}}copaymentAmount"); cp_el.set("value", _str_or_default(copay_val))
+        cp_el = etree.SubElement(settlement_el, f"{{{MHLW_NS_URL}}}copaymentAmount")
+        cp_el.set("value", _str_or_default(copay_val))
 
     claim_val = transformed_data.get("claimAmountValue")
     if claim_val is not None:
-        ca_el = etree.SubElement(settlement_el, f"{{{MHLW_NS_URL}}}claimAmount"); ca_el.set("value", _str_or_default(claim_val))
+        ca_el = etree.SubElement(settlement_el, f"{{{MHLW_NS_URL}}}claimAmount")
+        ca_el.set("value", _str_or_default(claim_val))
 
     return etree.tostring(root, pretty_print=True, xml_declaration=True, encoding="utf-8").decode("utf-8")
 
