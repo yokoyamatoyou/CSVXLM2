@@ -6,7 +6,7 @@ This project automates the processing of Japanese "特定健診／特定保健�
 
 ## Key Features
 
-*   **CSV Parsing:** Flexible CSV reader supporting various encodings (UTF-8, Shift_JIS) and delimiters, with mandatory column validation.
+*   **CSV Parsing:** Flexible CSV reader supporting various encodings (UTF-8, Shift_JIS) and delimiters, with mandatory column validation. Header rows can also be supplied via `column_names` in a profile.
 *   **Rule-Based Transformation:** Maps CSV data to intermediate models using external JSON rule files. (Note: Phase 2 for full rule engine implementation is pending).
 *   **XML Generation:** Creates multiple XML types:
     *   Health Checkup CDA (hc08)
@@ -181,6 +181,5 @@ implemented and validated against their XSD schemas:
 
 ### Known Limitations / TODOs
 
-* CSV files without headers are not yet supported.
 * Several orchestrator calls still pass raw dictionaries to the generators.
 * Command-line options are minimal and may change as development continues.
