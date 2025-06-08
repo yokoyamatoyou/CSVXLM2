@@ -10,7 +10,9 @@
   },
   "logging": {
     "log_file": "logs/app.log",
-    "log_level": "DEBUG"
+    "log_level": "DEBUG",
+    "console": true,
+    "file": true
   },
   "csv_profiles": {
     "default": {

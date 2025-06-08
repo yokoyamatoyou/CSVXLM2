@@ -48,8 +48,9 @@ pip install -r requirements.txt
 ```
 
 This installs the `lxml` library which is required for XML generation
-and validation.  If you are running Python 3.6, also install the
-`dataclasses` backport.
+and validation. The CLI uses Python's built-in `argparse` so no
+additional packages are required. If you are running Python 3.6, also
+install the `dataclasses` backport.
 
 ## XSD File Setup (Crucial for Operation)
 
@@ -74,12 +75,15 @@ The application is configured to look for XSDs in these specific locations. The 
 
 1.  Install the dependencies listed in `requirements.txt` and ensure
     the XSD files are placed as described above.
-2.  Run the main script from the project root directory:
+2.  Run the main script from the project root directory. Configuration and CSV
+    profile can be overridden via command line options:
     ```bash
-    python src/main.py
+    python src/main.py --config config_rules/config.json --profile grouped_checkup_profile
     ```
 3.  Output XMLs will be generated in `data/output_xmls/` and ZIP archives in `data/output_archives/`.
-4.  Logs are written to `logs/app.log` (configurable in `config_rules/config.json`).
+4.  Logs are written to the console and/or `logs/app.log` as specified in
+    `config_rules/config.json`. Set `logging.console` or `logging.file` to `true`
+    or `false` to control the destinations.
 
 ## Running Tests
 

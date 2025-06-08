@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-import os; import logging; from datetime import datetime; import zipfile; from pathlib import Path
+import argparse
+import os
+import logging
+from datetime import datetime
+import zipfile
+from pathlib import Path
 from csv_to_xml_converter.config import load_config
 from csv_to_xml_converter.logger import setup_logger
 from csv_to_xml_converter.orchestrator import Orchestrator
@@ -30,11 +35,28 @@ DEFAULT_GROUPED_CHECKUP_OUTPUT_DIR = "data/output_xmls/cda_checkup_grouped/"
 DEFAULT_GROUPED_CHECKUP_FILE_PREFIX = "hc_grp_cda_"
 DEFAULT_ARCHIVE_OUTPUT_DIR = "data/output_archives/"
 
-def main():
-    app_config = {}; main_logger = None
-    try: app_config = load_config(DEFAULT_CONFIG_FILE)
-    except Exception as e: print(f"Error loading config: {e}"); app_config = {"logging": {}}
-    app_config["_config_file_path_"] = DEFAULT_CONFIG_FILE
+def parse_args(args=None):
+    parser = argparse.ArgumentParser(description="CSV to MHLW XML conversion tool")
+    parser.add_argument(
+        "-c", "--config", default=DEFAULT_CONFIG_FILE,
+        help="Path to configuration JSON file")
+    parser.add_argument(
+        "-p", "--profile", default="grouped_checkup_profile",
+        help="CSV profile name defined in the config")
+    return parser.parse_args(args)
+
+
+def main(cli_args=None):
+    cli = parse_args(cli_args)
+    config_path = cli.config
+    app_config = {}
+    main_logger = None
+    try:
+        app_config = load_config(config_path)
+    except Exception as e:
+        print(f"Error loading config: {e}")
+        app_config = {"logging": {}}
+    app_config["_config_file_path_"] = config_path
     main_logger = setup_logger(config=app_config)
     main_logger.info("Application starting - Grouped CDA Test Run...")
     output_dirs = [app_config.get("paths", {}).get("output_xmls", "data/output_xmls"), DEFAULT_CDA_FULL_OUTPUT_DIR, DEFAULT_HG_CDA_FULL_OUTPUT_DIR, DEFAULT_CS_OUTPUT_DIR, DEFAULT_GS_OUTPUT_DIR, DEFAULT_GROUPED_CHECKUP_OUTPUT_DIR, DEFAULT_ARCHIVE_OUTPUT_DIR]
@@ -48,38 +70,59 @@ def main():
 
     # Generate individual Health Checkup CDAs (HC08)
     ghcf = orchestrator.process_csv_to_health_checkup_cdas(
-        DEFAULT_CDA_FULL_INPUT_CSV, DEFAULT_CDA_FULL_RULES_FILE,
-        DEFAULT_CDA_FULL_XSD_FILE, DEFAULT_CDA_FULL_OUTPUT_DIR
+        DEFAULT_CDA_FULL_INPUT_CSV,
+        DEFAULT_CDA_FULL_RULES_FILE,
+        DEFAULT_CDA_FULL_XSD_FILE,
+        DEFAULT_CDA_FULL_OUTPUT_DIR,
+        DEFAULT_CDA_FULL_FILE_PREFIX,
+        cli.profile,
     )
     all_data_xml_files.extend(ghcf)
 
     # Generate individual Health Guidance CDAs (HG08)
     ghgf = orchestrator.process_csv_to_health_guidance_cdas(
-        DEFAULT_HG_CDA_FULL_INPUT_CSV, DEFAULT_HG_CDA_FULL_RULES_FILE,
-        DEFAULT_HG_CDA_XSD_FILE, DEFAULT_HG_CDA_FULL_OUTPUT_DIR
+        DEFAULT_HG_CDA_FULL_INPUT_CSV,
+        DEFAULT_HG_CDA_FULL_RULES_FILE,
+        DEFAULT_HG_CDA_XSD_FILE,
+        DEFAULT_HG_CDA_FULL_OUTPUT_DIR,
+        DEFAULT_HG_CDA_FILE_PREFIX,
+        cli.profile,
     )
     all_data_xml_files.extend(ghgf)
 
     # Generate individual Checkup Settlement XMLs (CC08)
     gcsf = orchestrator.process_csv_to_checkup_settlement_xmls(
-        DEFAULT_CS_INPUT_CSV, DEFAULT_CS_RULES_FILE,
-        DEFAULT_CS_XSD_FILE, DEFAULT_CS_OUTPUT_DIR
+        DEFAULT_CS_INPUT_CSV,
+        DEFAULT_CS_RULES_FILE,
+        DEFAULT_CS_XSD_FILE,
+        DEFAULT_CS_OUTPUT_DIR,
+        DEFAULT_CS_FILE_PREFIX,
+        cli.profile,
     )
     all_claims_xml_files.extend(gcsf)
 
     # Generate individual Guidance Settlement XMLs (GC08)
     ggsf = orchestrator.process_csv_to_guidance_settlement_xmls(
-        DEFAULT_GS_INPUT_CSV, DEFAULT_GS_RULES_FILE,
-        DEFAULT_GS_XSD_FILE, DEFAULT_GS_OUTPUT_DIR
+        DEFAULT_GS_INPUT_CSV,
+        DEFAULT_GS_RULES_FILE,
+        DEFAULT_GS_XSD_FILE,
+        DEFAULT_GS_OUTPUT_DIR,
+        DEFAULT_GS_FILE_PREFIX,
+        cli.profile,
     )
     all_claims_xml_files.extend(ggsf)
 
     # --- Test for Grouped Checkup CDA (re-using Health Checkup CDA generation) ---
-    main_logger.info(f"--- Test: Grouped Checkup CDA (profile: grouped_checkup_profile) ---")
+    main_logger.info(
+        f"--- Test: Grouped Checkup CDA (profile: {cli.profile}) ---"
+    )
     grouped_cda_files = orchestrator.process_csv_to_health_checkup_cdas(
-        DEFAULT_GROUPED_CHECKUP_CSV, DEFAULT_GROUPED_CHECKUP_RULES_FILE,
-        DEFAULT_GROUPED_CHECKUP_XSD_FILE, DEFAULT_GROUPED_CHECKUP_OUTPUT_DIR,
-        DEFAULT_GROUPED_CHECKUP_FILE_PREFIX, "grouped_checkup_profile"
+        DEFAULT_GROUPED_CHECKUP_CSV,
+        DEFAULT_GROUPED_CHECKUP_RULES_FILE,
+        DEFAULT_GROUPED_CHECKUP_XSD_FILE,
+        DEFAULT_GROUPED_CHECKUP_OUTPUT_DIR,
+        DEFAULT_GROUPED_CHECKUP_FILE_PREFIX,
+        cli.profile,
     )
     all_data_xml_files.extend(grouped_cda_files) # Add grouped CDAs to the data list
     if grouped_cda_files: main_logger.info(f"OK: Generated {len(grouped_cda_files)} Grouped Checkup CDA XML(s).")

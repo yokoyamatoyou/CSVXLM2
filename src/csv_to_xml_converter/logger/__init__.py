@@ -15,6 +15,8 @@ def setup_logger(config: dict = None, logger_name: str = DEFAULT_LOGGER_NAME) ->
     log_conf = (config or {}).get("logging", {})
     log_file_path = log_conf.get("log_file", "logs/app.log")
     log_level_str = log_conf.get("log_level", "INFO").upper()
+    enable_console = log_conf.get("console", True)
+    enable_file = log_conf.get("file", True)
 
     log_level = getattr(logging, log_level_str, logging.INFO)
     if not isinstance(log_level, int):
@@ -38,20 +40,27 @@ def setup_logger(config: dict = None, logger_name: str = DEFAULT_LOGGER_NAME) ->
 
     formatter = logging.Formatter(DEFAULT_LOG_FORMAT)
 
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setFormatter(formatter)
-    console_handler.setLevel(log_level)
-    logger.addHandler(console_handler)
+    if enable_console:
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setFormatter(formatter)
+        console_handler.setLevel(log_level)
+        logger.addHandler(console_handler)
 
-    try:
-        file_handler = RotatingFileHandler(log_file_path, maxBytes=5*1024*1024, backupCount=3, encoding='utf-8')
-        file_handler.setFormatter(formatter)
-        file_handler.setLevel(log_level)
-        logger.addHandler(file_handler)
-    except (OSError, IOError) as e:
-        sys.stderr.write(f"Error: Could not set up file logging at {log_file_path}: {e}\n")
-        # Log to console if file handler failed
-        logger.error(f"Failed to initialize file logger at {log_file_path}", exc_info=False)
+    if enable_file and log_file_path:
+        try:
+            file_handler = RotatingFileHandler(
+                log_file_path, maxBytes=5 * 1024 * 1024, backupCount=3, encoding="utf-8"
+            )
+            file_handler.setFormatter(formatter)
+            file_handler.setLevel(log_level)
+            logger.addHandler(file_handler)
+        except (OSError, IOError) as e:
+            sys.stderr.write(
+                f"Error: Could not set up file logging at {log_file_path}: {e}\n"
+            )
+            logger.error(
+                f"Failed to initialize file logger at {log_file_path}", exc_info=False
+            )
 
     logger.info(f"Logger '{logger_name}' initialized. Level: {log_level_str}. Log file: {log_file_path if 'file_handler' in locals() else 'N/A'}")
     return logger
