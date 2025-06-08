@@ -122,3 +122,62 @@ def test_concat_split_create_and_lookup_loading():
     assert isinstance(m.obs, ObservationDataItem)
     assert m.lookup_result == "10"  # from oid_catalog.json
 
+
+def test_nested_object_creation_and_mapping():
+    from csv_to_xml_converter.models import ObservationDataItem
+
+    @dataclass
+    class ParentModel(IntermediateRecord):
+        nested: Optional[ObservationDataItem] = None
+
+    rules = [
+        {"rule_type": "create_nested_object", "output_field": "nested", "class_name": "ObservationDataItem"},
+        {"rule_type": "direct_mapping", "input_field": "code_in", "output_field": "nested.item_code.code"},
+        {"rule_type": "direct_mapping", "input_field": "val_in", "output_field": "nested.value"},
+    ]
+
+    data = [{"code_in": "HGB", "val_in": "10.5"}]
+    models = apply_rules(data, rules, model_class=ParentModel, lookup_tables={})
+    m = models[0]
+    assert isinstance(m.nested, ObservationDataItem)
+    assert m.nested.item_code.code == "HGB"
+    assert m.nested.value == "10.5"
+
+
+def test_index_and_summary_rules_files():
+    from csv_to_xml_converter.rule_engine import load_rules
+
+    @dataclass
+    class IndexModel(IntermediateRecord):
+        interactionType: Optional[str] = None
+        creationTime: Optional[str] = None
+        senderIdRootOid: Optional[str] = None
+        senderIdExtension: Optional[str] = None
+        receiverIdRootOid: Optional[str] = None
+        receiverIdExtension: Optional[str] = None
+        serviceEventType: Optional[str] = None
+        totalRecordCount: Optional[int] = None
+
+    index_rules = load_rules("config_rules/index_rules.json")
+    index_data = [{"creation_date": "20240101", "record_count": "5"}]
+    idx_model = apply_rules(index_data, index_rules, model_class=IndexModel, lookup_tables={})[0]
+    assert idx_model.interactionType == "1"
+    assert idx_model.totalRecordCount == 5
+
+    @dataclass
+    class SummaryModel(IntermediateRecord):
+        serviceEventTypeCode: Optional[str] = None
+        serviceEventTypeCodeSystem: Optional[str] = None
+        serviceEventTypeDisplayName: Optional[str] = None
+        totalSubjectCount: Optional[int] = None
+        totalCostAmount_value: Optional[int] = None
+        totalCostAmount_currency: Optional[str] = None
+        totalClaimAmount_value: Optional[int] = None
+        totalClaimAmount_currency: Optional[str] = None
+
+    summary_rules = load_rules("config_rules/summary_rules.json")
+    summary_data = [{"total_subjects": "10", "total_cost": "1000", "total_claim": "800"}]
+    sum_model = apply_rules(summary_data, summary_rules, model_class=SummaryModel, lookup_tables={})[0]
+    assert sum_model.serviceEventTypeCode == "AGG_SUMMARY"
+    assert sum_model.totalSubjectCount == 10
+    assert sum_model.totalCostAmount_currency == "JPY"
