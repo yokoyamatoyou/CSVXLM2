@@ -30,7 +30,12 @@ def parse_csv(
     escapechar: Optional[str] = None,
     doublequote: bool = True,
 ) -> List[Dict[str, str]]:
-    """Parses a CSV from a file path or string content."""
+    """Parses a CSV from a file path or string content.
+
+    Providing ``header_override`` allows parsing files that lack a header
+    row. ``required_columns`` are validated against either the detected
+    header or the supplied override.
+    """
     file_obj: io.TextIOBase
     is_likely_path = not ("\n" in source or "\r" in source)
     if is_likely_path:
@@ -170,18 +175,14 @@ def parse_csv_from_profile(profile: Dict[str, Any]) -> List[Dict[str, str]]:
                 col for col in required_columns_profile if col not in profile_column_names
             ]
             if missing_in_profile_columns:
-                msg = (f"Required column(s) {', '.join(missing_in_profile_columns)} "
-                       f"not found in profile's 'column_names'.")
+                msg = (
+                    f"Required column(s) {', '.join(missing_in_profile_columns)} "
+                    f"not found in profile's 'column_names'."
+                )
                 logger.error(msg)
                 raise CSVParsingError(msg)
-        # TODO: Adapt parse_csv or add new function to handle no-header CSVs using profile_column_names.
-        # The 'required_columns_profile' are validated against 'profile_column_names' here.
-        # For the actual parsing, if has_header is False, parse_csv would need to use
-        # profile_column_names as the header and not perform its own required_columns check,
-        # or its check should be against profile_column_names.
-        # The 'required_columns_profile' have been validated against 'profile_column_names'.
-        # So, when providing header_override, parse_csv doesn't need to re-check them.
-        # Pass required_columns=None to parse_csv in this case.
+        # Headerless CSVs are supported by passing profile_column_names as
+        # header_override and skipping further column validation here.
         return parse_csv(
             source=source,
             delimiter=profile.get("delimiter", ","),

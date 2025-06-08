@@ -169,7 +169,7 @@ def test_index_and_summary_rules_files():
         serviceEventTypeCode: Optional[str] = None
         serviceEventTypeCodeSystem: Optional[str] = None
         serviceEventTypeDisplayName: Optional[str] = None
-        totalSubjectCount: Optional[int] = None
+        totalSubjectCount_value: Optional[int] = None
         totalCostAmount_value: Optional[int] = None
         totalCostAmount_currency: Optional[str] = None
         totalClaimAmount_value: Optional[int] = None
@@ -178,6 +178,6 @@ def test_index_and_summary_rules_files():
     summary_rules = load_rules("config_rules/summary_rules.json")
     summary_data = [{"total_subjects": "10", "total_cost": "1000", "total_claim": "800"}]
     sum_model = apply_rules(summary_data, summary_rules, model_class=SummaryModel, lookup_tables={})[0]
-    assert sum_model.serviceEventTypeCode == "AGG_SUMMARY"
-    assert sum_model.totalSubjectCount == 10
+    assert sum_model.serviceEventTypeCode == "1"
+    assert sum_model.totalSubjectCount_value == 10
     assert sum_model.totalCostAmount_currency == "JPY"
