@@ -106,3 +106,24 @@ def test_csv_parser(tmp_path):
     csv_content_mismatch = "header1,header2\ndata1\ndata1,data2,data3"
     records10 = parse_csv(csv_content_mismatch)
     assert len(records10) == 0
+
+    csv_content_quoted = "name,comment\n\"Doe, John\",\"He said \"\"hello\"\"\"\nJane,Hi"
+    records11 = parse_csv(csv_content_quoted)
+    assert records11[0] == {"name": "Doe, John", "comment": "He said \"hello\""}
+
+    csv_content_escape = "name,quote\nBob,He said \\\"hi\\\""
+    records12 = parse_csv(
+        csv_content_escape,
+        escapechar="\\",
+        doublequote=False,
+    )
+    assert records12[0] == {"name": "Bob", "quote": "He said \"hi\""}
+
+    csv_no_header_quote = '"x,y",z\n1,2'
+    profile_no_header_quote = {
+        "source": csv_no_header_quote,
+        "has_header": False,
+        "column_names": ["col1", "col2"],
+    }
+    records13 = parse_csv_from_profile(profile_no_header_quote)
+    assert records13[0] == {"col1": "x,y", "col2": "z"}

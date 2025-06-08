@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import logging
 import os
+import csv
 from typing import Dict, List, Any, Optional
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,10 @@ def parse_csv(
     required_columns: Optional[List[str]] = None,
     skip_comments: bool = True,
     header_override: Optional[List[str]] = None,
+    *,
+    quotechar: str = '"',
+    escapechar: Optional[str] = None,
+    doublequote: bool = True,
 ) -> List[Dict[str, str]]:
     """
     Parses a CSV from a file path or a string content.
@@ -35,6 +40,9 @@ def parse_csv(
         skip_comments: If True, lines starting with '#' will be skipped.
         header_override: Optional list of strings to use as header. If provided,
                          no header is read from the source data itself.
+        quotechar: Character used to quote fields.
+        escapechar: Character used to escape the delimiter or quotechar.
+        doublequote: Whether two consecutive quote characters are interpreted as one.
 
     Returns:
         A list of dictionaries, where each dictionary represents a row
@@ -85,8 +93,15 @@ def parse_csv(
 
     records: List[Dict[str, str]] = []
     header_cols: Optional[List[str]] = None
-    header_line_index = -1 # Index of the line used as header, or -1 if header_override is used
+    header_line_index = -1  # Index of the line used as header, or -1 if header_override is used
     data_lines = lines
+
+    csv_kwargs = {
+        "delimiter": delimiter,
+        "quotechar": quotechar,
+        "escapechar": escapechar,
+        "doublequote": doublequote,
+    }
 
     if header_override is not None:
         logger.info("Using provided header_override: %s", header_override)
@@ -94,14 +109,14 @@ def parse_csv(
         # All lines are data lines
     else:
         for i, line in enumerate(lines):
-            line = line.strip()
-            if not line:  # Skip blank lines
+            line_stripped = line.strip()
+            if not line_stripped:  # Skip blank lines
                 continue
-            if skip_comments and line.startswith('#'):
-                logger.debug("Skipping comment line: %s", line)
+            if skip_comments and line_stripped.startswith('#'):
+                logger.debug("Skipping comment line: %s", line_stripped)
                 continue
 
-            header_cols = [col.strip() for col in line.split(delimiter)]
+            header_cols = [cell.strip() for cell in next(csv.reader([line], **csv_kwargs))]
             header_line_index = i
             data_lines = lines[header_line_index + 1:]
             logger.info("Header found on line %d: %s", i + 1, header_cols)
@@ -119,15 +134,15 @@ def parse_csv(
             raise CSVParsingError(msg)
 
     for i, line in enumerate(data_lines):
-        line_num = header_line_index + 1 + i + 1 # Adjust line_num accounting for header source
-        line = line.strip()
-        if not line: # Skip blank lines
+        line_num = (header_line_index + 1 if header_line_index >= 0 else 0) + i + 1
+        line_stripped = line.strip()
+        if not line_stripped:  # Skip blank lines
             continue
-        if skip_comments and line.startswith('#'):
-            logger.debug("Skipping comment line: %s", line)
+        if skip_comments and line_stripped.startswith('#'):
+            logger.debug("Skipping comment line: %s", line_stripped)
             continue
 
-        cells = [cell.strip() for cell in line.split(delimiter)]
+        cells = [cell.strip() for cell in next(csv.reader([line], **csv_kwargs))]
 
         if len(cells) != len(header_cols):
             logger.warning(
@@ -160,6 +175,9 @@ def parse_csv_from_profile(profile: Dict[str, Any]) -> List[Dict[str, str]]:
             'encoding' (str, optional): File encoding. Defaults to 'utf-8'.
             'required_columns' (List[str], optional): List of required column names.
             'skip_comments' (bool, optional): Whether to skip comments. Defaults to True.
+            'quotechar' (str, optional): Character used to quote fields. Defaults to '"'.
+            'escapechar' (str, optional): Character used to escape delimiters or quotes.
+            'doublequote' (bool, optional): Whether two consecutive quote characters are treated as one.
 
     Returns:
         A list of dictionaries representing rows from the CSV.
@@ -179,6 +197,9 @@ def parse_csv_from_profile(profile: Dict[str, Any]) -> List[Dict[str, str]]:
     has_header = profile.get("has_header", True)
     profile_column_names = profile.get("column_names")
     required_columns_profile = profile.get("required_columns")
+    quotechar_profile = profile.get("quotechar", '"')
+    escapechar_profile = profile.get("escapechar")
+    doublequote_profile = profile.get("doublequote", True)
 
     if not has_header:
         if not profile_column_names:
@@ -207,9 +228,12 @@ def parse_csv_from_profile(profile: Dict[str, Any]) -> List[Dict[str, str]]:
             source=source,
             delimiter=profile.get("delimiter", ","),
             encoding=profile.get("encoding", "utf-8"),
-            required_columns=None, # Already checked against profile_column_names
+            required_columns=None,  # Already checked against profile_column_names
             skip_comments=profile.get("skip_comments", True),
-            header_override=profile_column_names
+            header_override=profile_column_names,
+            quotechar=quotechar_profile,
+            escapechar=escapechar_profile,
+            doublequote=doublequote_profile,
         )
     else: # has_header is True
         # parse_csv will detect header from source and check required_columns_profile against it.
@@ -218,7 +242,10 @@ def parse_csv_from_profile(profile: Dict[str, Any]) -> List[Dict[str, str]]:
             delimiter=profile.get("delimiter", ","),
             encoding=profile.get("encoding", "utf-8"),
             required_columns=required_columns_profile,
-            skip_comments=profile.get("skip_comments", True)
+            skip_comments=profile.get("skip_comments", True),
+            quotechar=quotechar_profile,
+            escapechar=escapechar_profile,
+            doublequote=doublequote_profile,
             # header_override is None by default
         )
 
