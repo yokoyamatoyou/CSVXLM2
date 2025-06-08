@@ -216,11 +216,7 @@ class Orchestrator:
                     # Pass model instance directly to generator
                     # The generator will be adapted later to use model.header.to_xml_dict() and access body components
                     # For now, pass header dict for _populate_cda_header. Body will be broken.
-                    header_dict = transformed_model_instance.header.to_xml_dict() if transformed_model_instance.header else {}
-                    # The generate_health_checkup_cda function will need to be updated to accept the model instance
-                    # for body generation, and use header_dict for the header part.
-                    # Temporarily, we pass header_dict. This will break body generation.
-                    cda_element = generate_health_checkup_cda(header_dict) # TODO: Adapt generator for model input
+                    cda_element = generate_health_checkup_cda(transformed_model_instance)
                     xml_string = etree.tostring(cda_element, pretty_print=True, xml_declaration=True, encoding="utf-8").decode("utf-8")
                     is_valid, errors = validate_xml(xml_string, xsd_file_path)
                     if not is_valid:
@@ -267,11 +263,7 @@ class Orchestrator:
 
                     # Pass model instance directly to generator
                     # For now, pass header dict for _populate_cda_header. Body will be broken.
-                    header_dict = transformed_model_instance.header.to_xml_dict() if transformed_model_instance.header else {}
-                    # The generate_health_guidance_cda function will need to be updated to accept the model instance
-                    # for body generation, and use header_dict for the header part.
-                    # Temporarily, we pass header_dict. This will break body generation.
-                    cda_element = generate_health_guidance_cda(header_dict) # TODO: Adapt generator for model input
+                    cda_element = generate_health_guidance_cda(transformed_model_instance)
                     xml_string = etree.tostring(cda_element, pretty_print=True, xml_declaration=True, encoding="utf-8").decode("utf-8")
                     is_valid, errors = validate_xml(xml_string, xsd_file_path)
                     if not is_valid: logger.error(f"HG CDA for {row_doc_id} FAILED validation: {errors}"); continue
@@ -311,8 +303,7 @@ class Orchestrator:
                     if hasattr(transformed_model_instance, 'errors') and transformed_model_instance.errors:
                          logger.warning(f"Rule application for CS {row_doc_id} resulted in errors: {transformed_model_instance.errors}")
 
-                    transformed_dict = transformed_model_instance.to_xml_dict()
-                    xml_string = generate_checkup_settlement_xml(transformed_dict)
+                    xml_string = generate_checkup_settlement_xml(transformed_model_instance)
                     is_valid, errors = validate_xml(xml_string, xsd_file_path)
                     if not is_valid:
                         logger.error(f"CS XML for {row_doc_id} FAILED validation: {errors}")
@@ -368,15 +359,12 @@ class Orchestrator:
                          logger.warning(f"Rule application for GS {row_doc_id} resulted in errors: {transformed_model_instance.errors}")
 
                     transformed_dict = transformed_model_instance.to_xml_dict()
-
-                    # Add documentIdRootOid if not present from rules/model's to_xml_dict, using a default or from config for GS docs
-                    # This logic might be better placed in the rule engine or model's to_xml_dict if always needed.
                     if "documentIdRootOid" not in transformed_dict and "documentIdExtension" in transformed_dict:
-                        default_gs_doc_id_root = self.config.get("document_defaults",{}).get("guidance_settlement",{}).get("documentIdRootOid", "1.2.392.200119.6.1.GC.DEFAULT") # Example placeholder
+                        default_gs_doc_id_root = self.config.get("document_defaults",{}).get("guidance_settlement",{}).get("documentIdRootOid", "1.2.392.200119.6.1.GC.DEFAULT")
                         transformed_dict["documentIdRootOid"] = default_gs_doc_id_root
                         logger.debug(f"Added default documentIdRootOid for GS record {row_doc_id} to dict: {default_gs_doc_id_root}")
 
-                    xml_string = generate_guidance_settlement_xml(transformed_dict, current_time_iso)
+                    xml_string = generate_guidance_settlement_xml(transformed_model_instance, current_time_iso)
                     is_valid, errors = validate_xml(xml_string, xsd_file_path)
                     if not is_valid:
                         logger.error(f"GS XML for {row_doc_id} FAILED validation: {errors}")
