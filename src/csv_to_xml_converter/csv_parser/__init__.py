@@ -30,7 +30,31 @@ def parse_csv(
     escapechar: Optional[str] = None,
     doublequote: bool = True,
 ) -> List[Dict[str, str]]:
-    """Parses a CSV from a file path or string content."""
+    """Parses a CSV from a file path or string content.
+
+    Args:
+        source: Path to the CSV file or a string containing CSV data.
+        delimiter: Character used to separate fields. Defaults to ",".
+        encoding: File encoding if ``source`` is a path. Defaults to "utf-8".
+        required_columns: Column names that must be present in the header.
+        skip_comments: If ``True``, lines starting with ``#`` are skipped.
+        header_override: Optional list of column names to use as the header.
+        quotechar: Character used to quote fields. Defaults to '"'.
+        escapechar: Character used to escape ``delimiter``. Defaults to ``None``.
+        doublequote: Whether two consecutive ``quotechar`` characters represent
+            one. Defaults to ``True``.
+
+    Returns:
+        A list of dictionaries where each dictionary represents a row. If no
+        header row is found and ``header_override`` is not provided, an empty
+        list is returned.
+
+    Raises:
+        FileNotFoundError: If ``source`` is a path and the file is missing.
+        UnicodeDecodeError: If the file cannot be decoded using ``encoding``.
+        CSVParsingError: If required columns are missing or for other CSV
+            parsing inconsistencies.
+    """
     file_obj: io.TextIOBase
     is_likely_path = not ("\n" in source or "\r" in source)
     if is_likely_path:
@@ -145,9 +169,11 @@ def parse_csv_from_profile(profile: Dict[str, Any]) -> List[Dict[str, str]]:
 
     Raises:
         ValueError: If 'source' is not in profile or if 'column_names' are needed but not provided
-                    when has_header is False.
-        CSVParsingError: Propagated from `parse_csv` or for profile-specific CSV errors
-                         (e.g. required column not in 'column_names' when has_header=False).
+                    when ``has_header`` is ``False``.
+        CSVParsingError: Propagated from :func:`parse_csv` for issues such as missing
+            required columns or other CSV format errors. When no header row is present
+            and ``header_override`` is not provided, :func:`parse_csv` returns an empty
+            list instead of raising this error.
     """
     source = profile.get("source")
     if source is None:

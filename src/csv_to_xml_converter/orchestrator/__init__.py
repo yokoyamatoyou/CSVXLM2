@@ -153,6 +153,8 @@ class Orchestrator:
                 transformed_list = apply_rules([aggregation_input], rules, model_class=dict, lookup_tables=self.lookup_tables)
                 if transformed_list:
                     transformed_data = transformed_list[0]
+            if transformed_data.get("serviceEventTypeCode") == "AGG_SUMMARY":
+                transformed_data["serviceEventTypeCode"] = "1"
 
             xml_string = generate_summary_xml(transformed_data)
             is_valid, errors = validate_xml(xml_string, xsd_file_path)
