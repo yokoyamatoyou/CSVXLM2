@@ -33,6 +33,18 @@ def test_csv_parser(tmp_path):
     csv_path_comments = tmp_path / "comments.csv"
     csv_path_comments.write_text(csv_content_comments, encoding="utf-8")
 
+    csv_content_quotes = 'name,notes\n"Smith, John","He said ""Hi"""\nJane,""Hello""'
+    csv_path_quotes = tmp_path / "quotes.csv"
+    csv_path_quotes.write_text(csv_content_quotes, encoding="utf-8")
+
+    csv_content_single_quote = "name,desc\n'Alice','goodbye, friend'"
+    csv_path_single_quote = tmp_path / "single.csv"
+    csv_path_single_quote.write_text(csv_content_single_quote, encoding="utf-8")
+
+    csv_content_escape = 'name\n"A\\"lice"'
+    csv_path_escape = tmp_path / "escape.csv"
+    csv_path_escape.write_text(csv_content_escape, encoding="utf-8")
+
     records1 = parse_csv(str(csv_path_basic))
     assert len(records1) == 2
     assert records1[0] == {"name": "Alice", "age": "30", "city": "New York"}
@@ -52,6 +64,15 @@ def test_csv_parser(tmp_path):
 
     records6 = parse_csv(csv_content_basic)
     assert records6[0]["name"] == "Alice"
+
+    records_quotes = parse_csv(str(csv_path_quotes))
+    assert records_quotes[0] == {"name": "Smith, John", "notes": "He said \"Hi\""}
+
+    records_single = parse_csv(str(csv_path_single_quote), quotechar="'")
+    assert records_single[0] == {"name": "Alice", "desc": "goodbye, friend"}
+
+    records_escape = parse_csv(str(csv_path_escape), escapechar="\\", doublequote=False)
+    assert records_escape[0] == {"name": 'A"lice'}
 
     profile_test = {
         "source": str(csv_path_basic),
@@ -99,6 +120,16 @@ def test_csv_parser(tmp_path):
     }
     records8_4 = parse_csv_from_profile(profile_valid_req)
     assert records8_4[1] == {"headerX": "valZ", "headerY": "valW"}
+
+    csv_path_no_header_quotes = tmp_path / "no_header_quotes.csv"
+    csv_path_no_header_quotes.write_text('"v1","v2"\n"v3","v4"', encoding="utf-8")
+    profile_quotes = {
+        "source": str(csv_path_no_header_quotes),
+        "has_header": False,
+        "column_names": ["col1", "col2"],
+    }
+    rec_quotes = parse_csv_from_profile(profile_quotes)
+    assert rec_quotes[1] == {"col1": "v3", "col2": "v4"}
 
     with pytest.raises(FileNotFoundError):
         parse_csv("non_existent_file.csv")
