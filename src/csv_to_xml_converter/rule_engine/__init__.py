@@ -3,8 +3,9 @@
 Rule Engine with entry_relationship_group support.
 """
 import json, os, logging, re
-import sys # Required for self-test logging
+import sys  # Required for self-test logging
 from typing import List, Dict, Any, Optional
+from pathlib import Path
 
 logger = logging.getLogger(__name__) # Moved logger definition up
 
@@ -118,7 +119,7 @@ def _apply_single_rule(rule: Dict[str, Any], i_rec: Dict[str, Any], output_targe
     # Allow lookup_value with output_mappings to not have a primary output_field
     if rt == "lookup_value" and rule.get("output_mappings"):
         pass # Proceed, specific checks for output_mappings will handle assignment
-    elif not of and rt not in ["conditional_mapping", "entry_relationship_group"]:
+    elif not of and rt not in ["conditional_mapping", "entry_relationship_group", "split"]:
         logger.warning(f"Rule (type: {rt}) missing output_field (and not a special case like lookup_value with output_mappings, conditional_mapping, or entry_relationship_group). Rule: {rule}")
         return
 
@@ -194,6 +195,43 @@ def _apply_single_rule(rule: Dict[str, Any], i_rec: Dict[str, Any], output_targe
             logger.debug(f"LOOKUP_VALUE: output_field='{of}', looked_up_value='{result}' (single field assignment)")
         else:
             logger.warning(f"LOOKUP_VALUE: Rule for input_field '{inf}' has neither 'output_field' nor 'output_mappings'. Lookup result not assigned. Rule: {rule}")
+    elif rt == "concat":
+        inputs = rule.get("input_fields", [])
+        delim = rule.get("delimiter", "")
+        values = [str(i_rec.get(f, "")) for f in inputs]
+        concatenated = delim.join(values)
+        if is_dict_target:
+            output_target[of] = concatenated
+        else:
+            _set_nested_attr(output_target, of, concatenated)
+    elif rt == "split":
+        if not inf:
+            logger.warning(f"Split rule missing input_field: {rule}")
+            return
+        delim = rule.get("delimiter", "")
+        parts = str(i_rec.get(inf, "")).split(delim)
+        out_fields = rule.get("output_fields", [])
+        for idx, field in enumerate(out_fields):
+            val = parts[idx] if idx < len(parts) else None
+            if is_dict_target:
+                output_target[field] = val
+            else:
+                _set_nested_attr(output_target, field, val)
+    elif rt == "create_nested_object":
+        class_name = rule.get("class_name")
+        if not class_name:
+            logger.warning(f"create_nested_object rule missing class_name: {rule}")
+            return
+        try:
+            from .. import models
+            cls = getattr(models, class_name)
+            instance = cls()
+            if is_dict_target:
+                output_target[of] = instance
+            else:
+                _set_nested_attr(output_target, of, instance)
+        except Exception as e:
+            logger.error(f"Failed to create instance for {class_name}: {e}")
     elif rt == "calculate":
         calculation_name = rule.get("calculation_name")
         input_mapping = rule.get("input_mapping", [])
@@ -280,6 +318,17 @@ def _apply_single_rule(rule: Dict[str, Any], i_rec: Dict[str, Any], output_targe
     elif rt not in [None, "comment"]: logger.warning(f"Unknown rule_type: {rt} in rule {rule}")
 
 def apply_rules(data: List[Dict[str, Any]], rules: List[Dict[str, Any]], model_class: type, lookup_tables: Optional[Dict[str, Dict[str, Any]]] = None) -> List[IntermediateRecord]:
+    if lookup_tables is None:
+        lookup_tables = {}
+    if "$oid_catalog$" not in lookup_tables:
+        try:
+            oid_path = Path(__file__).resolve().parents[3] / "config_rules/oid_catalog.json"
+            if oid_path.exists():
+                with open(oid_path, "r", encoding="utf-8") as fp:
+                    lookup_tables["$oid_catalog$"] = json.load(fp)
+        except Exception as e:  # pragma: no cover - loading should be best effort
+            logger.warning(f"Failed loading OID catalog: {e}")
+
     transformed_data: List[IntermediateRecord] = []
     for rec_idx, input_rec in enumerate(data):
         model_instance = model_class()

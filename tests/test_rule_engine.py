@@ -92,3 +92,33 @@ def test_rule_engine_entry_relationship_and_calculate():
     result = apply_rules(calc_data, calc_rules, model_class=TestCalcModel, lookup_tables={})
     expected_bmi = round(70 / (1.75 ** 2), 2)
     assert result[0].bmi_observation.value == expected_bmi
+
+
+def test_concat_split_create_and_lookup_loading():
+    from csv_to_xml_converter.models import ObservationDataItem
+
+    @dataclass
+    class TestModel(IntermediateRecord):
+        first: Optional[str] = None
+        last: Optional[str] = None
+        full: Optional[str] = None
+        split_a: Optional[str] = None
+        split_b: Optional[str] = None
+        obs: Optional[ObservationDataItem] = None
+
+    rules = [
+        {"rule_type": "concat", "input_fields": ["first", "last"], "delimiter": " ", "output_field": "full"},
+        {"rule_type": "split", "input_field": "to_split", "delimiter": "-", "output_fields": ["split_a", "split_b"]},
+        {"rule_type": "create_nested_object", "output_field": "obs", "class_name": "ObservationDataItem"},
+        {"rule_type": "default_value", "output_field": "code_key", "value": "DocumentTypeCode.SpecificHealthCheckup"},
+        {"rule_type": "lookup_value", "input_field": "code_key", "lookup_table_name": "$oid_catalog$", "output_field": "lookup_result"}
+    ]
+
+    data = [{"first": "John", "last": "Doe", "to_split": "A-B"}]
+    models = apply_rules(data, rules, model_class=TestModel, lookup_tables={})
+    m = models[0]
+    assert m.full == "John Doe"
+    assert m.split_a == "A" and m.split_b == "B"
+    assert isinstance(m.obs, ObservationDataItem)
+    assert m.lookup_result == "10"  # from oid_catalog.json
+
