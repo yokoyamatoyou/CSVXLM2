@@ -30,25 +30,14 @@ class Orchestrator:
         self.config = config; self.csv_profiles = config.get("csv_profiles", {})
         self.lookup_tables = config.get("lookup_tables", {}).copy()
 
-        oid_catalog_path_from_config = config.get("oid_catalog_file")
-        if oid_catalog_path_from_config:
-            # Path from config.json is assumed to be relative to the project root or absolute.
-            resolved_oid_path = Path(oid_catalog_path_from_config)
-
-            if resolved_oid_path.exists():
-                try:
-                    with open(resolved_oid_path, "r", encoding="utf-8") as f_oid:
-                        oid_data = json.load(f_oid)
-                    self.lookup_tables["$oid_catalog$"] = oid_data
-                    logger.info(f"Successfully loaded OID Catalog from '{resolved_oid_path}' into lookup_tables.")
-                except Exception as e_oid_load:
-                    logger.error(f"Failed to load or parse OID Catalog from '{resolved_oid_path}': {e_oid_load}")
-            else:
-                logger.warning(f"OID Catalog file specified in config ('{oid_catalog_path_from_config}') but not found at path '{resolved_oid_path}' (expected relative to project root).")
+        if "$oid_catalog$" in self.lookup_tables:
+            logger.info("OID catalog provided via lookup_tables configuration.")
         else:
-            logger.info("No 'oid_catalog_file' specified in config. OID lookups will fail if rules expect '$oid_catalog$'.")
+            logger.info(
+                "No '$oid_catalog$' table supplied; rule engine will attempt automatic loading."
+            )
 
-        logger.info("Orchestrator initialized (CSV profiles and OID catalog processing attempted).")
+        logger.info("Orchestrator initialized (CSV profiles processed).")
 
     def _get_csv_profile(self, profile_name: str) -> Dict[str, Any]:
         # This method might be less relevant if CSV parsing for index/summary is removed,

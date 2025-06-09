@@ -123,7 +123,6 @@
       "5": "\u7dad\u6301\u671f"
     }
   },
-  "oid_catalog_file": "config_rules/oid_catalog.json",
   "document_defaults": {
     "guidance_settlement": {
       "documentIdRootOid": "1.2.392.200119.6.1.GC.DEFAULT"
