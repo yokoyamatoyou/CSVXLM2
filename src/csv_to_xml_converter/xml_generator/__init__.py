@@ -139,26 +139,26 @@ def _create_mo_element(parent_el: etree._Element, el_name: str, item_data: Any, 
     return None
 
 # --- Fully Restored XML Generators ---
-def generate_index_xml(transformed_data: Dict[str, Any]) -> str:
+def generate_index_xml(transformed_data: Dict[str, Any] | Any) -> str:
     schema_loc_val = f"{MHLW_NS_URL} ix08_V08.xsd"
     root = etree.Element("index", nsmap=NSMAP_MHLW_DEFAULT)
     root.set(f"{{{XSI_NS}}}schemaLocation", schema_loc_val)
-    etree.SubElement(root, "interactionType").set("code", _str_or_default(transformed_data.get("interactionType"), "1"))
-    etree.SubElement(root, "creationTime").set("value", _str_or_default(transformed_data.get("creationTime")))
+    etree.SubElement(root, "interactionType").set("code", _str_or_default(_get_value(transformed_data, "interactionType"), "1"))
+    etree.SubElement(root, "creationTime").set("value", _str_or_default(_get_value(transformed_data, "creationTime")))
     sender_el = etree.SubElement(root, "sender")
     _create_ii_element(sender_el, "id", transformed_data, "senderId")
     receiver_el = etree.SubElement(root, "receiver")
     _create_ii_element(receiver_el, "id", transformed_data, "receiverId")
-    etree.SubElement(root, "serviceEventType").set("code", _str_or_default(transformed_data.get("serviceEventType"), "1"))
-    etree.SubElement(root, "totalRecordCount").set("value", _str_or_default(transformed_data.get("totalRecordCount"), "0"))
+    etree.SubElement(root, "serviceEventType").set("code", _str_or_default(_get_value(transformed_data, "serviceEventType"), "1"))
+    etree.SubElement(root, "totalRecordCount").set("value", _str_or_default(_get_value(transformed_data, "totalRecordCount"), "0"))
     return etree.tostring(root, pretty_print=True, xml_declaration=True, encoding="utf-8").decode("utf-8")
 
-def generate_summary_xml(transformed_data: Dict[str, Any]) -> str:
+def generate_summary_xml(transformed_data: Dict[str, Any] | Any) -> str:
     schema_loc_val = f"{MHLW_NS_URL} su08_V08.xsd"
     root = etree.Element("summary", nsmap=NSMAP_MHLW_DEFAULT)
     root.set(f"{{{XSI_NS}}}schemaLocation", schema_loc_val)
 
-    set_code = transformed_data.get("serviceEventTypeCode")
+    set_code = _get_value(transformed_data, "serviceEventTypeCode")
     if set_code is not None:
         set_el = etree.SubElement(root, "serviceEventType")
         set_el.set("code", _str_or_default(set_code))
@@ -167,7 +167,7 @@ def generate_summary_xml(transformed_data: Dict[str, Any]) -> str:
     _create_mo_element(root, "totalCostAmount", transformed_data, "totalCostAmount", currency_key_suffix="_currency")
     _create_mo_element(root, "totalPaymentAmount", transformed_data, "totalPaymentAmount", currency_key_suffix="_currency")
     _create_mo_element(root, "totalClaimAmount", transformed_data, "totalClaimAmount", currency_key_suffix="_currency")
-    if transformed_data.get("totalPaymentByOtherProgramValue") is not None:
+    if _get_value(transformed_data, "totalPaymentByOtherProgramValue") is not None:
          _create_mo_element(root, "totalPaymentByOtherProgram", transformed_data, "totalPaymentByOtherProgram", currency_key_suffix="_currency")
     return etree.tostring(root, pretty_print=True, xml_declaration=True, encoding="utf-8").decode("utf-8")
 
