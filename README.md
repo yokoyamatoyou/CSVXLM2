@@ -41,8 +41,8 @@ original Shift_JIS file `CSVからXML変換詳細手順説明.txt`.
     *   `input_csvs/`: Sample input CSV files.
     *   `output_xmls/`: Output directory for generated XML files.
     *   `output_archives/`: Output directory for generated ZIP archives.
-    *   `XSD/`: Top-level directory with the main XSD files used for validation.
-    *   `coreschemas/`: Base HL7 CDA schemas referenced by the main XSDs.
+    *   `xsd_schemas/`: Contains general XSD schemas (ix08, su08, cc08, gc08, hg08, and their coreschemas).
+    *   `xsd_schemas_official/`: Contains official MHLW XSDs for HC08 (Health Checkup CDA) and its more comprehensive `coreschemas` (including base HL7 CDA schemas like `POCD_MT000040.xsd`).
 
 ## Environment Setup
 
@@ -60,16 +60,22 @@ install the `dataclasses` backport.
 
 ## XSD File Setup (Crucial for Operation)
 
-For the application to run correctly and perform XSD validations, the necessary
-schema files are provided in the repository’s top-level `XSD/` directory.  Its
-`coreschemas/` subdirectory contains the base HL7 CDA schemas required by the
-specification.  The sample archive
-`5521111111_00280081_202405271_1/5521111111_00280081_202405271_1/XSD/` mirrors
-this layout and can be used directly for testing or as a template.
+For the application to run correctly and perform XSD validations, the necessary XSD schema files must be correctly placed in their respective directories:
 
-During XML generation the program loads schemas from these directories and fails
-loudly if validation errors occur.  If duplicates exist, the example package path
-is preferred over the top-level `XSD/` directory when packaging archives.
+1.  **`data/xsd_schemas_official/`**:
+    *   Must contain `hc08_V08.xsd`.
+    *   Its `coreschemas/` subdirectory must be complete (e.g., including `POCD_MT000040.xsd`, `datatypes_hcgv08.xsd`, `narrativeBlock_hcgv08.xsd`, `voc_hcgv08.xsd`, `xlink.xsd`). This is typically the more comprehensive set of core HL7 CDA schemas.
+
+2.  **`data/xsd_schemas/`**:
+    *   Must contain all other main XSDs:
+        *   `cc08_V08.xsd` (Checkup Settlement)
+        *   `gc08_V08.xsd` (Guidance Settlement)
+        *   `hg08_V08.xsd` (Health Guidance CDA)
+        *   `ix08_V08.xsd` (Index file)
+        *   `su08_V08.xsd` (Summary file)
+    *   Its `coreschemas/` subdirectory should contain any specific core schemas required by the XSDs in this directory (e.g., `datatypes_hcgv08.xsd`, `voc_hcgv08.xsd`).
+
+The application is configured to look for XSDs in these specific locations. The ZIP packaging process also sources XSDs from these directories, prioritizing `data/xsd_schemas_official/` for any overlapping file names (like `coreschemas/datatypes_hcgv08.xsd`).
 
 ## Usage
 
@@ -119,7 +125,7 @@ The implementation is divided into five phases:
 4. **Phase 4 – index.xml / summary.xml**
    * Aggregate counts and totals from the generated XMLs to produce index and summary files.
 5. **Phase 5 – ZIP Packaging**
-   * Assemble the XML files and schemas into a submission archive with the required directory structure and verify the package contents.
+   * Assemble the XML files and schemas into a submission archive with the required directory structure.
 
 ## Phase 2 Progress
 
@@ -136,11 +142,9 @@ Phase 2 is complete. The rule engine loads mapping rules, performs lookups, conv
 
 These tests confirm that the engine can populate the intermediate objects with all data required for later XML generation. Additional rules handle rounding of numeric values and normalization of missing value markers as described in the specification.
 
-## Phase 3 & 4 Implementation
+## Phase 3 Plan
 
-Phases 3 and 4 cover the generation of XML documents and the creation of
-aggregated `index.xml` and `summary.xml` files.  The project provides generators
-for the following profiles:
+Phase 3 implements XML generation for four profiles:
 
 * **hc08** – Specific health checkup CDA
 * **cc08** – Health checkup settlement
@@ -161,29 +165,23 @@ folders and fails loudly if validation errors occur. If a schema exists in both
 locations, the deeper example path is preferred over the top-level `XSD/`
 directory.
 
-## Phase 5 Implementation
-
-Phase 5 finalizes the workflow by creating the ZIP archive required for
-submission. The orchestrator's `create_submission_archive` method copies all
-generated XML files and relevant XSDs into the `DATA/`, `CLAIMS/`, and `XSD/`
-directories and writes `index.xml` and `summary.xml` at the top level. The
-`verify_archive_contents` helper then validates each XML inside the archive
-against the bundled XSDs to ensure the package meets the official schema
-requirements.
-
 ## Current Progress
 
-The full conversion pipeline is operational.  Individual CDAs and settlement
-XMLs are generated from CSV input, aggregated into `index.xml` and
-`summary.xml`, packaged into a submission ZIP, and the archive contents are
-validated against the bundled XSDs.
+The XML generation layer is largely in place. The following generators have been
+implemented and validated against their XSD schemas:
+
+* `index.xml` and `summary.xml`
+* hc08 (health checkup CDA)
+* hg08 (health guidance CDA)
+* cc08 (checkup settlement)
+* gc08 (guidance settlement)
 
 ### Remaining Work
 
-* Expand unit tests with real-world data samples.
-* Provide additional command-line options for fine-grained control.
+* Refactor the orchestrator to remove legacy dictionary paths.
+* Add unit tests covering real-world data samples.
 
 ### Known Limitations / TODOs
 
-* Some orchestrator methods still include transitional logic that can be
-  simplified.
+* Several orchestrator calls still pass raw dictionaries to the generators.
+* Command-line options are minimal and may change as development continues.
