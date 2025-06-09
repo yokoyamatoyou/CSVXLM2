@@ -438,7 +438,6 @@ class Orchestrator:
                 else: logger.warning(f"Claim file {fp} not found.")
 
 
-            copied_xsd_files = set() # To keep track of copied XSDs and avoid redundant logging for coreschemas
             for xsd_src_path in xsd_source_paths:
                 logger.info(f"Processing XSD source path for archive: {xsd_src_path}")
                 if xsd_src_path.exists() and xsd_src_path.is_dir():
@@ -447,7 +446,6 @@ class Orchestrator:
                         if item.is_file() and item.name.lower().endswith(".xsd"):
                             target_file = x_dir / item.name
                             shutil.copy2(item, target_file)
-                            copied_xsd_files.add(item.name)
                             logger.debug(f"Copied XSD: {item} to {target_file}")
 
                     # Copy coreschemas
@@ -457,15 +455,18 @@ class Orchestrator:
                             if core_item.is_file() and core_item.name.lower().endswith(".xsd"):
                                 target_core_file = xc_dir / core_item.name
                                 shutil.copy2(core_item, target_core_file)
-                                # No need to add to copied_xsd_files for this check, already covered if it's a main xsd
                                 logger.debug(f"Copied core schema XSD: {core_item} to {target_core_file}")
-                    # else: # Logging for missing coreschemas can be verbose if many paths are checked
-                        # logger.debug(f"Coreschemas directory not found in {xsd_src_path}, or not a directory.")
                 else:
-                    logger.warning(f"XSD source directory {xsd_src_path} not found or not a directory. Skipping.")
+                    logger.warning(
+                        f"XSD source directory {xsd_src_path} not found or not a directory. Skipping."
+                    )
 
-            if not copied_xsd_files and not xc_dir.exists() or (xc_dir.exists() and not any(xc_dir.iterdir())) : # Check if anything was actually copied to XSD or XSD/coreschemas
-                 logger.warning(f"No XSD files or coreschemas were copied to the archive from configured paths: {xsd_source_paths}")
+            main_xsds = list(x_dir.glob("*.xsd"))
+            core_xsds = list(xc_dir.glob("*.xsd"))
+            if not main_xsds and not core_xsds:
+                logger.warning(
+                    f"No XSD files or coreschemas were copied to the archive from configured paths: {xsd_source_paths}"
+                )
 
             final_zip.parent.mkdir(parents=True, exist_ok=True)
             with zipfile.ZipFile(final_zip, "w", zipfile.ZIP_DEFLATED) as zf:
