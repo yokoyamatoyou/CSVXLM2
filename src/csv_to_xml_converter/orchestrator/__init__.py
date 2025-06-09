@@ -19,6 +19,7 @@ from ..validator import validate_xml, XMLValidationError
 from ..models import (
     HealthCheckupRecord, HealthGuidanceRecord,
     CheckupSettlementRecord, GuidanceSettlementRecord,
+    IndexRecord, SummaryRecord,
     IntermediateRecord # Though Rule Engine uses local if not found, Orchestrator should know it for type hints if any.
 )
 
@@ -79,19 +80,26 @@ class Orchestrator:
             if not rules_file_path:
                 rules_file_path = self.config.get("rule_files", {}).get("index_rules")
 
-            transformed_data = aggregation_input
+            transformed_obj = IndexRecord()
             if rules_file_path and Path(rules_file_path).exists():
                 rules = load_rules(rules_file_path)
-                transformed_list = apply_rules([aggregation_input], rules, model_class=dict, lookup_tables=self.lookup_tables)
+                transformed_list = apply_rules([aggregation_input], rules, model_class=IndexRecord, lookup_tables=self.lookup_tables)
                 if transformed_list:
-                    transformed_data = transformed_list[0]
+                    transformed_obj = transformed_list[0]
+            else:
+                transformed_obj.creationTime = aggregation_input["creation_date"]
+                transformed_obj.totalRecordCount = aggregation_input["record_count"]
 
-            missing_required_fields = [k for k in ["senderIdRootOid", "senderIdExtension", "receiverIdRootOid", "receiverIdExtension"] if k not in transformed_data or transformed_data.get(k) is None]
+            transformed_dict = transformed_obj.to_xml_dict()
+            missing_required_fields = [
+                k for k in ["senderIdRootOid", "senderIdExtension", "receiverIdRootOid", "receiverIdExtension"]
+                if transformed_dict.get(k) is None
+            ]
             if missing_required_fields:
                 logger.error(f"Missing required fields for index.xml: {missing_required_fields}")
                 return False
 
-            xml_string = generate_index_xml(transformed_data)
+            xml_string = generate_index_xml(transformed_obj)
             is_valid, errors = validate_xml(xml_string, xsd_file_path)
             if not is_valid:
                 logger.error(f"Aggregated index.xml FAILED validation: {errors}")
@@ -147,14 +155,19 @@ class Orchestrator:
                 "total_claim": int(round(total_claim_amount)),
             }
 
-            transformed_data = aggregation_input
+            transformed_obj = SummaryRecord()
             if rules_file_path and Path(rules_file_path).exists():
                 rules = load_rules(rules_file_path)
-                transformed_list = apply_rules([aggregation_input], rules, model_class=dict, lookup_tables=self.lookup_tables)
+                transformed_list = apply_rules([aggregation_input], rules, model_class=SummaryRecord, lookup_tables=self.lookup_tables)
                 if transformed_list:
-                    transformed_data = transformed_list[0]
+                    transformed_obj = transformed_list[0]
+            else:
+                transformed_obj.totalSubjectCount_value = aggregation_input["total_subjects"]
+                transformed_obj.totalCostAmountValue = aggregation_input["total_cost"]
+                transformed_obj.totalPaymentAmountValue = aggregation_input["total_claim"]
+                transformed_obj.totalClaimAmountValue = aggregation_input["total_claim"]
 
-            xml_string = generate_summary_xml(transformed_data)
+            xml_string = generate_summary_xml(transformed_obj)
             is_valid, errors = validate_xml(xml_string, xsd_file_path)
             if not is_valid:
                 logger.error(f"Aggregated summary.xml FAILED validation: {errors}")

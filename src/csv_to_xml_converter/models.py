@@ -388,4 +388,78 @@ class GuidanceSettlementRecord(IntermediateRecord): # Inherits from Intermediate
         # For now, this simple vars(self) relies on rules directly setting documentIdRootOid etc.
         return data
 
-# Self-test / example usage
+# ---------------------------------------------------------------------------
+# Additional simple dataclasses used by the orchestrator once dictionary based
+# paths were removed.  These models intentionally mirror the minimal fields
+# required by the XML generators.  Rule files can still populate additional
+# attributes, but the orchestrator now deals with strongly typed objects.
+
+@dataclass
+class IndexRecord(IntermediateRecord):
+    """Model for index.xml generation."""
+    interactionType: Optional[str] = None
+    creationTime: Optional[str] = None
+    senderIdRootOid: Optional[str] = None
+    senderIdExtension: Optional[str] = None
+    receiverIdRootOid: Optional[str] = None
+    receiverIdExtension: Optional[str] = None
+    serviceEventType: Optional[str] = None
+    totalRecordCount: Optional[int] = None
+
+    def to_xml_dict(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {}
+        for f_name in [
+            "interactionType",
+            "creationTime",
+            "senderIdRootOid",
+            "senderIdExtension",
+            "receiverIdRootOid",
+            "receiverIdExtension",
+            "serviceEventType",
+            "totalRecordCount",
+        ]:
+            v = getattr(self, f_name)
+            if v is not None:
+                d[f_name] = v
+        return d
+
+
+@dataclass
+class SummaryRecord(IntermediateRecord):
+    """Model for summary.xml generation."""
+
+    serviceEventTypeCode: Optional[str] = None
+    serviceEventTypeCodeSystem: Optional[str] = None
+    serviceEventTypeDisplayName: Optional[str] = None
+    totalSubjectCount_value: Optional[int] = None
+    totalCostAmountValue: Optional[int] = None
+    totalCostAmount_currency: str = "JPY"
+    totalPaymentAmountValue: Optional[int] = None
+    totalPaymentAmount_currency: str = "JPY"
+    totalClaimAmountValue: Optional[int] = None
+    totalClaimAmount_currency: str = "JPY"
+    totalPaymentByOtherProgramValue: Optional[int] = None
+    totalPaymentByOtherProgram_currency: str = "JPY"
+
+    def to_xml_dict(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {}
+        for f_name in [
+            "serviceEventTypeCode",
+            "serviceEventTypeCodeSystem",
+            "serviceEventTypeDisplayName",
+            "totalSubjectCount_value",
+            "totalCostAmountValue",
+            "totalCostAmount_currency",
+            "totalPaymentAmountValue",
+            "totalPaymentAmount_currency",
+            "totalClaimAmountValue",
+            "totalClaimAmount_currency",
+            "totalPaymentByOtherProgramValue",
+            "totalPaymentByOtherProgram_currency",
+        ]:
+            v = getattr(self, f_name)
+            if v is not None:
+                d[f_name] = v
+        return d
+
+
