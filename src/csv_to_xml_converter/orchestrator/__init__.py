@@ -90,10 +90,15 @@ class Orchestrator:
                 transformed_obj.creationTime = aggregation_input["creation_date"]
                 transformed_obj.totalRecordCount = aggregation_input["record_count"]
 
-            transformed_dict = transformed_obj.to_xml_dict()
             missing_required_fields = [
-                k for k in ["senderIdRootOid", "senderIdExtension", "receiverIdRootOid", "receiverIdExtension"]
-                if transformed_dict.get(k) is None
+                k
+                for k in [
+                    "senderIdRootOid",
+                    "senderIdExtension",
+                    "receiverIdRootOid",
+                    "receiverIdExtension",
+                ]
+                if getattr(transformed_obj, k, None) is None
             ]
             if missing_required_fields:
                 logger.error(f"Missing required fields for index.xml: {missing_required_fields}")
@@ -363,11 +368,19 @@ class Orchestrator:
                     if hasattr(transformed_model_instance, 'errors') and transformed_model_instance.errors:
                          logger.warning(f"Rule application for GS {row_doc_id} resulted in errors: {transformed_model_instance.errors}")
 
-                    transformed_dict = transformed_model_instance.to_xml_dict()
-                    if "documentIdRootOid" not in transformed_dict and "documentIdExtension" in transformed_dict:
-                        default_gs_doc_id_root = self.config.get("document_defaults",{}).get("guidance_settlement",{}).get("documentIdRootOid", "1.2.392.200119.6.1.GC.DEFAULT")
-                        transformed_dict["documentIdRootOid"] = default_gs_doc_id_root
-                        logger.debug(f"Added default documentIdRootOid for GS record {row_doc_id} to dict: {default_gs_doc_id_root}")
+                    if (
+                        transformed_model_instance.document_id.extension
+                        and not transformed_model_instance.document_id.root
+                    ):
+                        default_gs_doc_id_root = (
+                            self.config.get("document_defaults", {})
+                            .get("guidance_settlement", {})
+                            .get("documentIdRootOid", "1.2.392.200119.6.1.GC.DEFAULT")
+                        )
+                        transformed_model_instance.document_id.root = default_gs_doc_id_root
+                        logger.debug(
+                            f"Added default documentIdRootOid for GS record {row_doc_id}: {default_gs_doc_id_root}"
+                        )
 
                     xml_string = generate_guidance_settlement_xml(transformed_model_instance, current_time_iso)
                     is_valid, errors = validate_xml(xml_string, xsd_file_path)
