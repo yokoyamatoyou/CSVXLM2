@@ -37,7 +37,11 @@ def test_setup_logger_force_reconfigure(tmp_path):
 
     log_file2 = tmp_path / "two.log"
     cfg2 = {"logging": {"log_file": str(log_file2), "console": False}}
-    logger = setup_logger(config=cfg2, logger_name="reconf", force_reconfigure=True)
+    logger = setup_logger(
+        config=cfg2,
+        logger_name="reconf",
+        force_reconfigure=True,
+    )
     logger.info("second")
     for h in logger.handlers:
         if hasattr(h, "flush"):

@@ -13,12 +13,16 @@ import io
 
 logger = logging.getLogger(__name__)
 
+
 class CSVParsingError(ValueError):
     """Custom error for CSV parsing issues."""
     pass
 
 
-def _validate_required_columns(header: List[str], required: Optional[List[str]]) -> None:
+def _validate_required_columns(
+    header: List[str],
+    required: Optional[List[str]],
+) -> None:
     """Ensures all ``required`` columns exist in ``header``.
 
     Raises ``CSVParsingError`` if any required column is missing.
@@ -75,7 +79,8 @@ def _parse_csv_stream(
             continue
         if len(row) != len(header_cols):
             logger.warning(
-                "Skipping line %d due to column count mismatch (expected %d, got %d): %s",
+                "Skipping line %d due to column count mismatch "
+                "(expected %d, got %d): %s",
                 line_num,
                 len(header_cols),
                 len(row),
@@ -136,7 +141,9 @@ def parse_csv(
         CSVParsingError: For I/O errors while reading the file or when
             ``required_columns`` are missing.
     """
-    is_file_path = os.path.exists(source) or not ("\n" in source or "\r" in source)
+    is_file_path = os.path.exists(source) or not (
+        "\n" in source or "\r" in source
+    )
 
     if is_file_path and not os.path.exists(source):
         logger.error("File not found: %s", source)
@@ -169,38 +176,48 @@ def parse_csv(
                 doublequote,
             )
     except UnicodeDecodeError as e:
-        logger.error("Encoding error for file %s with encoding %s: %s", source, encoding, e)
+        logger.error(
+            "Encoding error for file %s with encoding %s: %s",
+            source,
+            encoding,
+            e,
+        )
         raise
     except Exception as e:
         logger.error("Error reading CSV %s: %s", source, e)
         raise CSVParsingError(f"Error reading CSV {source}: {e}") from e
+
+
 def parse_csv_from_profile(profile: Dict[str, Any]) -> List[Dict[str, str]]:
-    """
-    Parses a CSV file based on a provided profile dictionary.
+    """Parse a CSV file based on a profile dictionary.
 
     Args:
         profile: A dictionary containing parsing parameters. Expected keys:
             'source' (str): Path to CSV or CSV content string. (Required)
-            'has_header' (bool, optional): Whether the CSV has a header row. Defaults to True.
-                                           If False, 'column_names' must be provided.
-            'column_names' (List[str], optional): List of column names. Required if 'has_header' is False.
-                                                  Used as the header if 'has_header' is False.
+            'has_header' (bool, optional): Whether the CSV has a header row.
+                Defaults to True. If False, 'column_names' must be provided.
+            'column_names' (List[str], optional): Column names used when the
+                CSV has no header row.
             'delimiter' (str, optional): CSV delimiter. Defaults to ','.
             'encoding' (str, optional): File encoding. Defaults to 'utf-8'.
-            'required_columns' (List[str], optional): List of required column names.
-            'skip_comments' (bool, optional): Whether to skip comments. Defaults to True.
-            'quotechar' (str, optional): Character used to quote fields. Defaults to '"'.
-            'escapechar' (str, optional): Character used to escape the delimiter. Defaults to None.
-            'doublequote' (bool, optional): Whether two consecutive quotechars represent one. Defaults to True.
+            'required_columns' (List[str], optional): Required column names.
+            'skip_comments' (bool, optional): Whether to skip comments.
+                Defaults to True.
+            'quotechar' (str, optional): Character used to quote fields.
+                Defaults to '"'.
+            'escapechar' (str, optional): Character used to escape the
+                delimiter. Defaults to None.
+            'doublequote' (bool, optional): Whether two consecutive
+                quotechars represent one. Defaults to True.
 
     Returns:
         A list of dictionaries representing rows from the CSV.
 
     Raises:
-        ValueError: If 'source' is not in profile or if 'column_names' are needed but not provided
-                    when has_header is False.
-        CSVParsingError: Propagated from `parse_csv` or for profile-specific CSV errors
-                         (e.g. required column not in 'column_names' when has_header=False).
+        ValueError: If 'source' is missing or 'column_names' are required when
+            ``has_header`` is False.
+        CSVParsingError: Propagated from ``parse_csv`` or raised when required
+            columns listed in ``column_names`` are missing.
     """
     source = profile.get("source")
     if source is None:
@@ -214,18 +231,24 @@ def parse_csv_from_profile(profile: Dict[str, Any]) -> List[Dict[str, str]]:
 
     if not has_header:
         if not profile_column_names:
-            msg = "Profile has 'has_header: False' but no 'column_names' are provided."
+            msg = (
+                "Profile has 'has_header: False' but no 'column_names' are "
+                "provided."
+            )
             logger.error(msg)
             raise ValueError(msg)
 
         if required_columns_profile:
             missing_in_profile_columns = [
-                col for col in required_columns_profile if col not in profile_column_names
+                col
+                for col in required_columns_profile
+                if col not in profile_column_names
             ]
             if missing_in_profile_columns:
                 msg = (
-                    f"Required column(s) {', '.join(missing_in_profile_columns)} "
-                    f"not found in profile's 'column_names'."
+                    "Required column(s) "
+                    f"{', '.join(missing_in_profile_columns)} "
+                    "not found in profile's 'column_names'."
                 )
                 logger.error(msg)
                 raise CSVParsingError(msg)
@@ -235,15 +258,17 @@ def parse_csv_from_profile(profile: Dict[str, Any]) -> List[Dict[str, str]]:
             source=source,
             delimiter=profile.get("delimiter", ","),
             encoding=profile.get("encoding", "utf-8"),
-            required_columns=None, # Already checked against profile_column_names
+            # Already checked against profile_column_names
+            required_columns=None,
             skip_comments=profile.get("skip_comments", True),
             header_override=profile_column_names,
             quotechar=profile.get("quotechar", '"'),
             escapechar=profile.get("escapechar"),
             doublequote=profile.get("doublequote", True),
         )
-    else: # has_header is True
-        # parse_csv will detect header from source and check required_columns_profile against it.
+    else:  # has_header is True
+        # parse_csv will detect header from source and
+        # check required_columns_profile against it.
         return parse_csv(
             source=source,
             delimiter=profile.get("delimiter", ","),
@@ -255,4 +280,3 @@ def parse_csv_from_profile(profile: Dict[str, Any]) -> List[Dict[str, str]]:
             doublequote=profile.get("doublequote", True)
             # header_override is None by default
         )
-
