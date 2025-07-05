@@ -12,6 +12,7 @@ import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from dataclasses import dataclass
 
 from lxml import etree
 
@@ -37,7 +38,17 @@ from ..models import (
     IntermediateRecord # Though Rule Engine uses local if not found, Orchestrator should know it for type hints if any.
 )
 
+
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class XMLValidationTarget:
+    """Represents an XML file to validate against an XSD."""
+
+    path: Path
+    xsd_name: str
+    file_type: str
 
 class Orchestrator:
     """Coordinate CSV parsing, rule application and XML generation."""
@@ -746,6 +757,80 @@ class Orchestrator:
                         "Error cleaning temp dir %s: %s", temp_build_parent_dir, e_clean
                     )
 
+    def _collect_xml_validation_targets(
+        self, archive_root: Path
+    ) -> tuple[List[XMLValidationTarget], bool]:
+        """Return a list of XML files with their expected XSDs and a success flag."""
+        targets: List[XMLValidationTarget] = []
+        all_found = True
+
+        index_xml = archive_root / "index.xml"
+        if index_xml.exists():
+            targets.append(XMLValidationTarget(index_xml, "ix08_V08.xsd", "Index"))
+        else:
+            logger.error(f"index.xml not found in archive at expected location: {index_xml}")
+            all_found = False
+
+        summary_xml = archive_root / "summary.xml"
+        if summary_xml.exists():
+            targets.append(XMLValidationTarget(summary_xml, "su08_V08.xsd", "Summary"))
+        else:
+            logger.error(f"summary.xml not found in archive at expected location: {summary_xml}")
+            all_found = False
+
+        data_dir = archive_root / "DATA"
+        if data_dir.is_dir():
+            for item in data_dir.iterdir():
+                if item.is_file() and item.name.lower().endswith(".xml"):
+                    if item.name.startswith("hc_cda_"):
+                        targets.append(XMLValidationTarget(item, "hc08_V08.xsd", "Health Checkup CDA"))
+                    elif item.name.startswith("hg_cda_"):
+                        targets.append(XMLValidationTarget(item, "hg08_V08.xsd", "Health Guidance CDA"))
+                    else:
+                        logger.warning(f"Could not determine XSD for DATA file: {item.name}")
+
+        claims_dir = archive_root / "CLAIMS"
+        if claims_dir.is_dir():
+            for item in claims_dir.iterdir():
+                if item.is_file() and item.name.lower().endswith(".xml"):
+                    if item.name.startswith("cs_"):
+                        targets.append(XMLValidationTarget(item, "cc08_V08.xsd", "Checkup Settlement"))
+                    elif item.name.startswith("gs_"):
+                        targets.append(XMLValidationTarget(item, "gc08_V08.xsd", "Guidance Settlement"))
+                    else:
+                        logger.warning(f"Could not determine XSD for CLAIMS file: {item.name}")
+
+        return targets, all_found
+
+    def _validate_xml_file(self, target: XMLValidationTarget, xsd_dir: Path) -> bool:
+        """Validate a single XML file against the given XSD directory."""
+        xsd_path = xsd_dir / target.xsd_name
+        if not xsd_path.exists():
+            logger.error(
+                f"XSD file '{target.xsd_name}' not found in archive's XSD directory ({xsd_dir}) for {target.file_type} '{target.path.name}'. Skipping validation."
+            )
+            return False
+        try:
+            logger.info(
+                f"Validating {target.file_type}: {target.path.name} against {xsd_path.name}"
+            )
+            xml_content = target.path.read_text(encoding="utf-8")
+            is_valid, errors = validate_xml(xml_content, str(xsd_path))
+            if is_valid:
+                logger.info(
+                    f"OK: {target.file_type} '{target.path.name}' is valid against '{xsd_path.name}'."
+                )
+                return True
+            logger.error(
+                f"FAIL: {target.file_type} '{target.path.name}' is invalid against '{xsd_path.name}'. Errors: {errors}"
+            )
+            return False
+        except Exception as exc:
+            logger.error(
+                f"Error validating {target.file_type} '{target.path.name}': {exc}", exc_info=True
+            )
+            return False
+
     def verify_archive_contents(self, zip_archive_path: str) -> bool:
         """Validate XML files in a created archive against their bundled XSDs."""
         logger.info(f"Verifying contents of archive: {zip_archive_path}")
@@ -755,102 +840,23 @@ class Orchestrator:
 
         try:
             logger.debug(f"Extracting archive to temporary directory: {temp_dir_path}")
-            with zipfile.ZipFile(zip_archive_path, 'r') as zip_ref:
+            with zipfile.ZipFile(zip_archive_path, "r") as zip_ref:
                 zip_ref.extractall(temp_dir_path)
 
-            # Define XSD and XML file locations within the extracted archive
-            extracted_xsd_base_path = temp_dir_path / Path(zip_archive_path).stem / "XSD" # Path includes archive name folder
-            xml_files_to_validate = []
+            archive_root = temp_dir_path / Path(zip_archive_path).stem
+            xsd_dir = archive_root / "XSD"
 
-            archive_content_root = temp_dir_path / Path(zip_archive_path).stem
-
-            # index.xml
-            index_xml_file = archive_content_root / "index.xml"
-            if index_xml_file.exists():
-                xml_files_to_validate.append({"path": index_xml_file, "xsd_name": "ix08_V08.xsd", "type": "Index"})
-            else:
-                logger.error(f"index.xml not found in archive at expected location: {index_xml_file}")
+            targets, found_required = self._collect_xml_validation_targets(archive_root)
+            if not targets and found_required:
+                logger.warning(
+                    f"No XML files were found or mapped for validation in archive {zip_archive_path}."
+                )
+            if not found_required:
                 all_valid = False
 
-            # summary.xml
-            summary_xml_file = archive_content_root / "summary.xml"
-            if summary_xml_file.exists():
-                xml_files_to_validate.append({"path": summary_xml_file, "xsd_name": "su08_V08.xsd", "type": "Summary"})
-            else:
-                logger.error(f"summary.xml not found in archive at expected location: {summary_xml_file}")
-                all_valid = False
-
-            # Files in DATA/ directory
-            data_dir = archive_content_root / "DATA"
-            if data_dir.is_dir():
-                for item in data_dir.iterdir():
-                    if item.is_file() and item.name.lower().endswith(".xml"):
-                        xsd_name = None
-                        file_type = "Unknown DATA"
-                        if item.name.startswith("hc_cda_"):  # Health Checkup CDA
-                            xsd_name = "hc08_V08.xsd"
-                            file_type = "Health Checkup CDA"
-                        elif item.name.startswith("hg_cda_"):  # Health Guidance CDA
-                            xsd_name = "hg08_V08.xsd"
-                            file_type = "Health Guidance CDA"
-
-                        if xsd_name:
-                            xml_files_to_validate.append({"path": item, "xsd_name": xsd_name, "type": file_type})
-                        else:
-                            logger.warning(f"Could not determine XSD for DATA file: {item.name}")
-
-            # Files in CLAIMS/ directory
-            claims_dir = archive_content_root / "CLAIMS"
-            if claims_dir.is_dir():
-                for item in claims_dir.iterdir():
-                    if item.is_file() and item.name.lower().endswith(".xml"):
-                        xsd_name = None
-                        file_type = "Unknown CLAIM"
-                        if item.name.startswith("cs_"):  # Checkup Settlement
-                            xsd_name = "cc08_V08.xsd"
-                            file_type = "Checkup Settlement"
-                        elif item.name.startswith("gs_"):  # Guidance Settlement
-                            xsd_name = "gc08_V08.xsd"
-                            file_type = "Guidance Settlement"
-
-                        if xsd_name:
-                            xml_files_to_validate.append({"path": item, "xsd_name": xsd_name, "type": file_type})
-                        else:
-                            logger.warning(f"Could not determine XSD for CLAIMS file: {item.name}")
-
-            # Perform validation for all collected XML files
-            for xml_info in xml_files_to_validate:
-                xml_file_path = xml_info["path"]
-                xsd_file_name = xml_info["xsd_name"]
-                file_type_desc = xml_info["type"]
-
-                xsd_path_in_archive = extracted_xsd_base_path / xsd_file_name
-
-                if not xsd_path_in_archive.exists():
-                    logger.error(f"XSD file '{xsd_file_name}' not found in archive's XSD directory ({extracted_xsd_base_path}) for {file_type_desc} '{xml_file_path.name}'. Skipping validation.")
+            for target in targets:
+                if not self._validate_xml_file(target, xsd_dir):
                     all_valid = False
-                    continue
-
-                try:
-                    logger.info(f"Validating {file_type_desc}: {xml_file_path.name} against {xsd_path_in_archive.name}")
-                    xml_content = xml_file_path.read_text(encoding="utf-8")
-                    # Assuming validate_xml can take a Path object for xsd_path directly or string path
-                    is_valid, errors = validate_xml(xml_content, str(xsd_path_in_archive))
-                    if is_valid:
-                        logger.info(f"OK: {file_type_desc} '{xml_file_path.name}' is valid against '{xsd_path_in_archive.name}'.")
-                    else:
-                        all_valid = False
-                        logger.error(f"FAIL: {file_type_desc} '{xml_file_path.name}' is invalid against '{xsd_path_in_archive.name}'. Errors: {errors}")
-                except Exception as e:
-                    all_valid = False
-                    logger.error(f"Error validating {file_type_desc} '{xml_file_path.name}': {e}", exc_info=True)
-
-            if not xml_files_to_validate and all_valid:
-                logger.warning(f"No XML files were found or mapped for validation in archive {zip_archive_path}.")
-                # If the archive is expected to have specific files (like index.xml, summary.xml),
-                # their absence (already flagged by all_valid = False) would make this an error state.
-                # If an empty valid archive is possible, this warning is fine.
-
 
         except FileNotFoundError:
             logger.error(f"Archive not found: {zip_archive_path}")
@@ -859,14 +865,21 @@ class Orchestrator:
             logger.error(f"Invalid or corrupted ZIP file: {zip_archive_path}")
             all_valid = False
         except Exception as e:
-            logger.error(f"An unexpected error occurred during archive verification: {e}", exc_info=True)
+            logger.error(
+                f"An unexpected error occurred during archive verification: {e}",
+                exc_info=True,
+            )
             all_valid = False
         finally:
             logger.debug(f"Cleaning up temporary directory: {temp_dir_path}")
             temp_dir_obj.cleanup()
 
         if all_valid:
-            logger.info(f"All XML files in archive '{zip_archive_path}' successfully validated against their XSDs from within the archive.")
+            logger.info(
+                f"All XML files in archive '{zip_archive_path}' successfully validated against their XSDs from within the archive."
+            )
         else:
-            logger.error(f"One or more XML files in archive '{zip_archive_path}' failed validation or were missing.")
+            logger.error(
+                f"One or more XML files in archive '{zip_archive_path}' failed validation or were missing."
+            )
         return all_valid
