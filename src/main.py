@@ -82,7 +82,7 @@ def main(cli_args=None):
     try:
         app_config = load_config(config_path)
     except Exception as e:
-        print(f"Error loading config: {e}")
+        logging.error("Error loading config: %s", e)
         app_config = {"logging": {}}
     app_config["_config_file_path_"] = config_path
     main_logger = setup_logger(config=app_config)
