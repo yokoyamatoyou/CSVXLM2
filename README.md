@@ -43,6 +43,7 @@ original Shift_JIS file `CSVからXML変換詳細手順説明.txt`.
     *   `output_archives/`: Output directory for generated ZIP archives.
     *   `xsd_schemas/`: Contains general XSD schemas (ix08, su08, cc08, gc08, hg08, and their coreschemas).
     *   `xsd_schemas_official/`: Contains official MHLW XSDs for HC08 (Health Checkup CDA) and its more comprehensive `coreschemas` (including base HL7 CDA schemas like `POCD_MT000040.xsd`).
+*   `scripts/`: Utility scripts for maintaining the rule engine's logging behavior (`inject_logging_script.py`, `cleanup_logging_script.py`, `fix_lookup_source_script.py`).
 
 ## Environment Setup
 
