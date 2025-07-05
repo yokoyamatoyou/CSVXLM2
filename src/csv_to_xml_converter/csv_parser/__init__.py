@@ -18,6 +18,85 @@ class CSVParsingError(ValueError):
     pass
 
 
+def _parse_csv_stream(
+    file_obj: io.TextIOBase,
+    delimiter: str,
+    required_columns: Optional[List[str]],
+    skip_comments: bool,
+    header_override: Optional[List[str]],
+    quotechar: str,
+    escapechar: Optional[str],
+    doublequote: bool,
+) -> List[Dict[str, str]]:
+    """Internal helper to parse an opened CSV file object."""
+    reader = csv.reader(
+        file_obj,
+        delimiter=delimiter,
+        quotechar=quotechar,
+        escapechar=escapechar,
+        doublequote=doublequote,
+    )
+
+    records: List[Dict[str, str]] = []
+    header_cols: Optional[List[str]] = None
+    line_num = 0
+
+    if header_override is not None:
+        header_cols = [col.strip() for col in header_override]
+        if required_columns:
+            missing = [c for c in required_columns if c not in header_cols]
+            if missing:
+                msg = (
+                    "CSV header is missing required column(s): "
+                    + ", ".join(missing)
+                )
+                logger.error(msg)
+                raise CSVParsingError(msg)
+        logger.info("Using provided header_override: %s", header_override)
+
+    for row in reader:
+        line_num += 1
+        if not row:
+            continue
+        if skip_comments and row[0].startswith('#'):
+            logger.debug("Skipping comment line: %s", row)
+            continue
+        if header_cols is None:
+            header_cols = [cell.strip() for cell in row]
+            logger.info("Header found on line %d: %s", line_num, header_cols)
+            if required_columns:
+                missing = [c for c in required_columns if c not in header_cols]
+                if missing:
+                    msg = (
+                        "CSV header is missing required column(s): "
+                        + ", ".join(missing)
+                    )
+                    logger.error(msg)
+                    raise CSVParsingError(msg)
+            continue
+        if len(row) != len(header_cols):
+            logger.warning(
+                "Skipping line %d due to column count mismatch (expected %d, got %d): %s",
+                line_num,
+                len(header_cols),
+                len(row),
+                row,
+            )
+            continue
+        cells = [cell.strip() for cell in row]
+        records.append(dict(zip(header_cols, cells)))
+
+    if header_cols is None:
+        logger.warning("No header row found or provided in CSV data.")
+        return []
+
+    logger.info("Loaded %d records from CSV.", len(records))
+    if records:
+        logger.debug("First record: %s", records[0])
+
+    return records
+
+
 def parse_csv(
     source: str,
     delimiter: str = ',',
@@ -58,96 +137,44 @@ def parse_csv(
         CSVParsingError: For I/O errors while reading the file or when
             ``required_columns`` are missing.
     """
-    file_obj: io.TextIOBase
-    is_likely_path = not ("\n" in source or "\r" in source)
-    if is_likely_path:
-        if not os.path.exists(source):
-            logger.error("File not found: %s", source)
-            raise FileNotFoundError(f"No such file or directory: '{source}'")
-        logger.debug("Source '%s' is an existing file path. Reading content.", source)
-        try:
-            file_obj = open(source, 'r', encoding=encoding, newline='')
-        except UnicodeDecodeError as e:
-            logger.error("Encoding error for file %s with encoding %s: %s", source, encoding, e)
-            raise
-        except Exception as e:
-            logger.error("Error reading file %s: %s", source, e)
-            raise CSVParsingError(f"Error reading file {source}: {e}") from e
-    else:
-        if os.path.exists(source):
-            logger.debug("Source '%s' with newlines exists as a file. Reading content.", source)
-            try:
-                file_obj = open(source, 'r', encoding=encoding, newline='')
-            except UnicodeDecodeError as e:
-                logger.error("Encoding error for file %s with encoding %s: %s", source, encoding, e)
-                raise
-            except Exception as e:
-                logger.error("Error reading file %s: %s", source, e)
-                raise CSVParsingError(f"Error reading file {source}: {e}") from e
-        else:
-            logger.debug("Source is treated as direct string content.")
-            file_obj = io.StringIO(source)
+    is_file_path = os.path.exists(source) or not ("\n" in source or "\r" in source)
 
-    reader = csv.reader(
-        file_obj,
-        delimiter=delimiter,
-        quotechar=quotechar,
-        escapechar=escapechar,
-        doublequote=doublequote,
-    )
+    if is_file_path and not os.path.exists(source):
+        logger.error("File not found: %s", source)
+        raise FileNotFoundError(f"No such file or directory: '{source}'")
 
-    records: List[Dict[str, str]] = []
-    header_cols: Optional[List[str]] = None
-    line_num = 0
-
-    if header_override is not None:
-        header_cols = [col.strip() for col in header_override]
-        if required_columns:
-            missing = [c for c in required_columns if c not in header_cols]
-            if missing:
-                msg = f"CSV header is missing required column(s): {', '.join(missing)}"
-                logger.error(msg)
-                raise CSVParsingError(msg)
-        logger.info("Using provided header_override: %s", header_override)
-
-    for row in reader:
-        line_num += 1
-        if not row:
-            continue
-        if skip_comments and row[0].startswith('#'):
-            logger.debug("Skipping comment line: %s", row)
-            continue
-        if header_cols is None:
-            header_cols = [cell.strip() for cell in row]
-            logger.info("Header found on line %d: %s", line_num, header_cols)
-            if required_columns:
-                missing = [c for c in required_columns if c not in header_cols]
-                if missing:
-                    msg = f"CSV header is missing required column(s): {', '.join(missing)}"
-                    logger.error(msg)
-                    raise CSVParsingError(msg)
-            continue
-        if len(row) != len(header_cols):
-            logger.warning(
-                "Skipping line %d due to column count mismatch (expected %d, got %d): %s",
-                line_num,
-                len(header_cols),
-                len(row),
-                row,
+    try:
+        if is_file_path:
+            logger.debug("Reading CSV from file path: %s", source)
+            with open(source, "r", encoding=encoding, newline="") as file_obj:
+                return _parse_csv_stream(
+                    file_obj,
+                    delimiter,
+                    required_columns,
+                    skip_comments,
+                    header_override,
+                    quotechar,
+                    escapechar,
+                    doublequote,
+                )
+        logger.debug("Parsing CSV from provided string content.")
+        with io.StringIO(source) as file_obj:
+            return _parse_csv_stream(
+                file_obj,
+                delimiter,
+                required_columns,
+                skip_comments,
+                header_override,
+                quotechar,
+                escapechar,
+                doublequote,
             )
-            continue
-        cells = [cell.strip() for cell in row]
-        records.append(dict(zip(header_cols, cells)))
-
-    if header_cols is None:
-        logger.warning("No header row found or provided in CSV data.")
-        return []
-
-    logger.info("Loaded %d records from CSV.", len(records))
-    if records:
-        logger.debug("First record: %s", records[0])
-
-    return records
+    except UnicodeDecodeError as e:
+        logger.error("Encoding error for file %s with encoding %s: %s", source, encoding, e)
+        raise
+    except Exception as e:
+        logger.error("Error reading CSV %s: %s", source, e)
+        raise CSVParsingError(f"Error reading CSV {source}: {e}") from e
 def parse_csv_from_profile(profile: Dict[str, Any]) -> List[Dict[str, str]]:
     """
     Parses a CSV file based on a provided profile dictionary.
