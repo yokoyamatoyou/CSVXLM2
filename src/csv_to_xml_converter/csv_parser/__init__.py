@@ -18,6 +18,21 @@ class CSVParsingError(ValueError):
     pass
 
 
+def _validate_required_columns(header: List[str], required: Optional[List[str]]) -> None:
+    """Ensures all ``required`` columns exist in ``header``.
+
+    Raises ``CSVParsingError`` if any required column is missing.
+    """
+    if not required:
+        return
+
+    missing = [c for c in required if c not in header]
+    if missing:
+        msg = "CSV header is missing required column(s): " + ", ".join(missing)
+        logger.error(msg)
+        raise CSVParsingError(msg)
+
+
 def _parse_csv_stream(
     file_obj: io.TextIOBase,
     delimiter: str,
@@ -43,15 +58,7 @@ def _parse_csv_stream(
 
     if header_override is not None:
         header_cols = [col.strip() for col in header_override]
-        if required_columns:
-            missing = [c for c in required_columns if c not in header_cols]
-            if missing:
-                msg = (
-                    "CSV header is missing required column(s): "
-                    + ", ".join(missing)
-                )
-                logger.error(msg)
-                raise CSVParsingError(msg)
+        _validate_required_columns(header_cols, required_columns)
         logger.info("Using provided header_override: %s", header_override)
 
     for row in reader:
@@ -64,15 +71,7 @@ def _parse_csv_stream(
         if header_cols is None:
             header_cols = [cell.strip() for cell in row]
             logger.info("Header found on line %d: %s", line_num, header_cols)
-            if required_columns:
-                missing = [c for c in required_columns if c not in header_cols]
-                if missing:
-                    msg = (
-                        "CSV header is missing required column(s): "
-                        + ", ".join(missing)
-                    )
-                    logger.error(msg)
-                    raise CSVParsingError(msg)
+            _validate_required_columns(header_cols, required_columns)
             continue
         if len(row) != len(header_cols):
             logger.warning(
