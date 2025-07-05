@@ -476,14 +476,8 @@ def apply_rules(data: List[Dict[str, Any]], rules: List[Dict[str, Any]], model_c
 
         for rule_idx, rule_def in enumerate(rules):
             try:
-                # Correctly get rule_type for the check
-                current_rule_type = rule_def.get("rule_type")
-                if current_rule_type == "entry_relationship_group":
-                    _apply_single_rule(rule_def, input_rec, model_instance, lookup_tables)
-                elif current_rule_type == "conditional_mapping":
-                     _apply_single_rule(rule_def, input_rec, model_instance, lookup_tables)
-                else:
-                    _apply_single_rule(rule_def, input_rec, model_instance, lookup_tables)
+                # Apply the rule directly; _apply_single_rule handles the specifics
+                _apply_single_rule(rule_def, input_rec, model_instance, lookup_tables)
 
             except Exception as e:
                 error_msg = f"Err @ rec {rec_idx} rule {rule_idx} ({rule_def.get('rule_type')} for {rule_def.get('output_field', rule_def.get('output_field_anchor'))}): {e}"
