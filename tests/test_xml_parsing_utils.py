@@ -2,6 +2,7 @@ import os
 from csv_to_xml_converter.xml_generator.xml_parsing_utils import (
     get_claim_amount_from_cc08,
     get_claim_amount_from_gc08,
+    get_claim_amount,
     get_subject_count_from_cda,
 )
 
@@ -31,5 +32,8 @@ def test_xml_parsing_utils(tmp_path):
 
     assert get_claim_amount_from_cc08(str(cc08_path)) == 12345.67
     assert get_claim_amount_from_gc08(str(gc08_path)) == 5000.0
+    assert get_claim_amount(str(cc08_path)) == 12345.67
+    assert get_claim_amount(str(gc08_path)) == 5000.0
+    assert get_claim_amount(str(cda_path)) is None
     assert get_subject_count_from_cda(str(cda_path)) == 1
     assert get_subject_count_from_cda(str(cc08_path)) == 0

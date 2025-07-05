@@ -60,6 +60,41 @@ def get_claim_amount_from_gc08(xml_path: str) -> Optional[float]:
         "/gc:GuidanceClaimDocument/gc:settlementDetails/gc:claimAmount/@value",
     )
 
+
+def get_claim_amount(xml_path: str) -> Optional[float]:
+    """Return the claim amount from either a CC08 or GC08 XML file."""
+    try:
+        tree = etree.parse(xml_path)
+    except etree.XMLSyntaxError as e:
+        logger.error("XMLSyntaxError parsing %s: %s", xml_path, e)
+        return None
+    except Exception as e:  # pragma: no cover - unexpected errors
+        logger.error("Unexpected error parsing %s: %s", xml_path, e)
+        return None
+
+    root_tag = tree.getroot().tag
+    if root_tag == f"{{{NAMESPACES['mhlw']}}}checkupClaim":
+        xpath = "/mhlw:checkupClaim/mhlw:settlement/mhlw:claimAmount/@value"
+    elif root_tag == f"{{{NAMESPACES['gc']}}}GuidanceClaimDocument":
+        xpath = "/gc:GuidanceClaimDocument/gc:settlementDetails/gc:claimAmount/@value"
+    else:
+        logger.warning("Unsupported claim XML root %s in %s", root_tag, xml_path)
+        return None
+
+    try:
+        amount_values = tree.xpath(xpath, namespaces=NAMESPACES)
+        if amount_values:
+            return float(amount_values[0])
+        logger.warning(
+            "Could not find claimAmount attribute in %s using XPath %s",
+            xml_path,
+            xpath,
+        )
+        return None
+    except ValueError as e:
+        logger.error("ValueError converting claim amount in %s: %s", xml_path, e)
+        return None
+
 def get_subject_count_from_cda(xml_path: str) -> int:
     """
     Returns the subject count from a CDA XML file.
