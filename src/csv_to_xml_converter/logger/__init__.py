@@ -3,12 +3,14 @@ import os
 import sys
 from logging.handlers import RotatingFileHandler
 
-# Placeholder for config loading, actual import might differ based on execution context
+# Placeholder for config loading.
+# Actual import might differ based on execution context.
 # from ..config import load_config
 
 DEFAULT_LOGGER_NAME = "csv_to_xml_converter"
 DEFAULT_LOG_FORMAT = (
-    '%(asctime)s - %(name)s - %(levelname)s - %(module)s:%(lineno)d - %(message)s'
+    "%(asctime)s - %(name)s - %(levelname)s - "
+    "%(module)s:%(lineno)d - %(message)s"
 )
 
 
@@ -46,7 +48,10 @@ def setup_logger(
 
     log_level = getattr(logging, log_level_str, logging.INFO)
     if not isinstance(log_level, int):
-        sys.stderr.write(f"Warning: Invalid log level '{log_level_str}'. Defaulting to INFO.\n")
+        sys.stderr.write(
+            "Warning: Invalid log level "
+            f"'{log_level_str}'. Defaulting to INFO.\n"
+        )
         log_level = logging.INFO
 
     logger.setLevel(log_level)
@@ -68,7 +73,10 @@ def setup_logger(
         if log_dir and not os.path.exists(log_dir):
             os.makedirs(log_dir, exist_ok=True)
     except OSError as e:
-        sys.stderr.write(f"Warning: Could not create log directory {log_dir}: {e}. Using fallback.\n")
+        sys.stderr.write(
+            "Warning: Could not create log directory "
+            f"{log_dir}: {e}. Using fallback.\n"
+        )
         log_file_path = os.path.basename(log_file_path) or "app.log"
 
     formatter = logging.Formatter(DEFAULT_LOG_FORMAT)
@@ -82,20 +90,26 @@ def setup_logger(
     if enable_file and log_file_path:
         try:
             file_handler = RotatingFileHandler(
-                log_file_path, maxBytes=5 * 1024 * 1024, backupCount=3, encoding="utf-8"
+                log_file_path,
+                maxBytes=5 * 1024 * 1024,
+                backupCount=3,
+                encoding="utf-8",
             )
             file_handler.setFormatter(formatter)
             file_handler.setLevel(log_level)
             logger.addHandler(file_handler)
         except (OSError, IOError) as e:
             sys.stderr.write(
-                f"Error: Could not set up file logging at {log_file_path}: {e}\n"
+                "Error: Could not set up file logging at "
+                f"{log_file_path}: {e}\n"
             )
             logger.error(
-                f"Failed to initialize file logger at {log_file_path}", exc_info=False
+                f"Failed to initialize file logger at {log_file_path}",
+                exc_info=False,
             )
 
-    logger.info(f"Logger '{logger_name}' initialized. Level: {log_level_str}. Log file: {log_file_path if 'file_handler' in locals() else 'N/A'}")
+    logger.info(
+        f"Logger '{logger_name}' initialized. Level: {log_level_str}. "
+        f"Log file: {log_file_path if 'file_handler' in locals() else 'N/A'}"
+    )
     return logger
-
-

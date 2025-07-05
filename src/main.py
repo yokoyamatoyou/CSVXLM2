@@ -23,8 +23,10 @@ XSD_OFFICIAL_BASE = DEEP_XSD_BASE
 XSD_GENERAL_BASE = DEEP_XSD_BASE
 
 # Define output paths for aggregated index and summary
-DEFAULT_INDEX_OUTPUT_XML = "data/output_xmls/index.xml" # Changed from ix08_output_V08.xml
-DEFAULT_SUMMARY_OUTPUT_XML = "data/output_xmls/summary.xml" # Changed from su08_output_V08.xml
+# Changed from ix08_output_V08.xml
+DEFAULT_INDEX_OUTPUT_XML = "data/output_xmls/index.xml"
+# Changed from su08_output_V08.xml
+DEFAULT_SUMMARY_OUTPUT_XML = "data/output_xmls/summary.xml"
 DEFAULT_INDEX_XSD_FILE = XSD_GENERAL_BASE + "ix08_V08.xsd"
 DEFAULT_SUMMARY_XSD_FILE = XSD_GENERAL_BASE + "su08_V08.xsd"
 
@@ -35,7 +37,9 @@ DEFAULT_CDA_FULL_XSD_FILE = XSD_OFFICIAL_BASE + "hc08_V08.xsd"
 DEFAULT_CDA_FULL_OUTPUT_DIR = "data/output_xmls/cda_checkup_full/"
 DEFAULT_CDA_FULL_FILE_PREFIX = "hc_cda_"
 
-DEFAULT_HG_CDA_FULL_INPUT_CSV = "data/input_csvs/sample_health_guidance_full.csv"
+DEFAULT_HG_CDA_FULL_INPUT_CSV = (
+    "data/input_csvs/sample_health_guidance_full.csv"
+)
 DEFAULT_HG_CDA_FULL_RULES_FILE = "config_rules/health_guidance_full_rules.json"
 DEFAULT_HG_CDA_XSD_FILE = XSD_GENERAL_BASE + "hg08_V08.xsd"
 DEFAULT_HG_CDA_FULL_OUTPUT_DIR = "data/output_xmls/cda_guidance_full/"
@@ -55,10 +59,12 @@ DEFAULT_GS_FILE_PREFIX = "gs_"
 # Paths for Grouped Checkup CDA Test
 DEFAULT_GROUPED_CHECKUP_CSV = "data/input_csvs/sample_grouped_checkup.csv"
 DEFAULT_GROUPED_CHECKUP_RULES_FILE = "config_rules/grouped_checkup_rules.json"
-DEFAULT_GROUPED_CHECKUP_XSD_FILE = XSD_OFFICIAL_BASE + "hc08_V08.xsd" # Uses the same health checkup XSD
+# Uses the same health checkup XSD as individual CDA generation
+DEFAULT_GROUPED_CHECKUP_XSD_FILE = XSD_OFFICIAL_BASE + "hc08_V08.xsd"
 DEFAULT_GROUPED_CHECKUP_OUTPUT_DIR = "data/output_xmls/cda_checkup_grouped/"
 DEFAULT_GROUPED_CHECKUP_FILE_PREFIX = "hc_grp_cda_"
 DEFAULT_ARCHIVE_OUTPUT_DIR = "data/output_archives/"
+
 
 def parse_args(args=None):
     """Parse command line arguments."""
@@ -90,8 +96,17 @@ def main(cli_args=None):
     app_config["_config_file_path_"] = config_path
     main_logger = setup_logger(config=app_config)
     main_logger.info("Application starting - Grouped CDA Test Run...")
-    output_dirs = [app_config.get("paths", {}).get("output_xmls", "data/output_xmls"), DEFAULT_CDA_FULL_OUTPUT_DIR, DEFAULT_HG_CDA_FULL_OUTPUT_DIR, DEFAULT_CS_OUTPUT_DIR, DEFAULT_GS_OUTPUT_DIR, DEFAULT_GROUPED_CHECKUP_OUTPUT_DIR, DEFAULT_ARCHIVE_OUTPUT_DIR]
-    for d_str in output_dirs: # Corrected variable name 'd' to 'd_str'
+    output_dirs = [
+        app_config.get("paths", {}).get("output_xmls", "data/output_xmls"),
+        DEFAULT_CDA_FULL_OUTPUT_DIR,
+        DEFAULT_HG_CDA_FULL_OUTPUT_DIR,
+        DEFAULT_CS_OUTPUT_DIR,
+        DEFAULT_GS_OUTPUT_DIR,
+        DEFAULT_GROUPED_CHECKUP_OUTPUT_DIR,
+        DEFAULT_ARCHIVE_OUTPUT_DIR,
+    ]
+    # Create output directories
+    for d_str in output_dirs:
         Path(d_str).mkdir(parents=True, exist_ok=True)
     orchestrator = Orchestrator(app_config)
 
@@ -143,7 +158,7 @@ def main(cli_args=None):
     )
     all_claims_xml_files.extend(ggsf)
 
-    # --- Test for Grouped Checkup CDA (re-using Health Checkup CDA generation) ---
+    # --- Test for Grouped Checkup CDA ---
     main_logger.info(
         f"--- Test: Grouped Checkup CDA (profile: {cli.profile}) ---"
     )
@@ -155,31 +170,59 @@ def main(cli_args=None):
         DEFAULT_GROUPED_CHECKUP_FILE_PREFIX,
         cli.profile,
     )
-    all_data_xml_files.extend(grouped_cda_files) # Add grouped CDAs to the data list
-    if grouped_cda_files: main_logger.info(f"OK: Generated {len(grouped_cda_files)} Grouped Checkup CDA XML(s).")
-    else: main_logger.error(f"FAIL: Grouped Checkup CDA generation.")
+    # Add grouped CDAs to the data list
+    all_data_xml_files.extend(grouped_cda_files)
+    if grouped_cda_files:
+        msg = (
+            f"OK: Generated {len(grouped_cda_files)} "
+            "Grouped Checkup CDA XML(s)."
+        )
+        main_logger.info(msg)
+    else:
+        main_logger.error("FAIL: Grouped Checkup CDA generation.")
 
     # --- Generate Aggregated Index and Summary XMLs ---
     main_logger.info(f"--- Generating Aggregated Index and Summary XMLs ---")
     index_xml_generated_path = None
     summary_xml_generated_path = None
 
-    if orchestrator.generate_aggregated_index_xml(all_data_xml_files, all_claims_xml_files, DEFAULT_INDEX_OUTPUT_XML, DEFAULT_INDEX_XSD_FILE):
+    if orchestrator.generate_aggregated_index_xml(
+        all_data_xml_files,
+        all_claims_xml_files,
+        DEFAULT_INDEX_OUTPUT_XML,
+        DEFAULT_INDEX_XSD_FILE,
+    ):
         index_xml_generated_path = DEFAULT_INDEX_OUTPUT_XML
-        main_logger.info(f"OK: Aggregated Index XML generated: {index_xml_generated_path}")
+        main_logger.info(
+            f"OK: Aggregated Index XML generated: {index_xml_generated_path}"
+        )
     else:
         main_logger.error(f"FAIL: Aggregated Index XML generation.")
 
-    if orchestrator.generate_aggregated_summary_xml(all_claims_xml_files, all_data_xml_files, DEFAULT_SUMMARY_OUTPUT_XML, DEFAULT_SUMMARY_XSD_FILE):
+    if orchestrator.generate_aggregated_summary_xml(
+        all_claims_xml_files,
+        all_data_xml_files,
+        DEFAULT_SUMMARY_OUTPUT_XML,
+        DEFAULT_SUMMARY_XSD_FILE,
+    ):
         summary_xml_generated_path = DEFAULT_SUMMARY_OUTPUT_XML
-        main_logger.info(f"OK: Aggregated Summary XML generated: {summary_xml_generated_path}")
+        main_logger.info(
+            "OK: Aggregated Summary XML generated: "
+            f"{summary_xml_generated_path}"
+        )
     else:
         main_logger.error(f"FAIL: Aggregated Summary XML generation.")
 
     main_logger.info(f"--- Archiving Process ---")
     # Use all_data_xml_files and all_claims_xml_files collected above
-    if index_xml_generated_path and summary_xml_generated_path and (all_data_xml_files or all_claims_xml_files): # Check if any data/claim files exist
-        archive_base = f"Submission_Aggregated_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    if (
+        index_xml_generated_path
+        and summary_xml_generated_path
+        and (all_data_xml_files or all_claims_xml_files)
+    ):
+        archive_base = (
+            f"Submission_Aggregated_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        )
         zip_path = orchestrator.create_submission_archive(
             index_xml_generated_path, summary_xml_generated_path,
             all_data_xml_files, all_claims_xml_files,
@@ -189,14 +232,24 @@ def main(cli_args=None):
             main_logger.info(f"OK: Archive created: {zip_path}")
             # Add verification step
             if orchestrator.verify_archive_contents(zip_path):
-                main_logger.info(f"OK: Archive contents successfully verified: {zip_path}")
+                main_logger.info(
+                    "OK: Archive contents successfully verified: "
+                    f"{zip_path}"
+                )
             else:
-                main_logger.error(f"FAIL: Archive contents verification failed for: {zip_path}")
+                main_logger.error(
+                    "FAIL: Archive contents verification failed for: "
+                    f"{zip_path}"
+                )
         else:
             main_logger.error(f"FAIL: Archive creation.")
     else:
-        main_logger.warning("Skipping archiving: missing critical aggregated XMLs or no data/claims files generated.")
+        main_logger.warning(
+            "Skipping archiving: missing critical aggregated XMLs or "
+            "no data/claims files generated."
+        )
     main_logger.info("Application finished.")
+
 
 if __name__ == "__main__":
     main()
