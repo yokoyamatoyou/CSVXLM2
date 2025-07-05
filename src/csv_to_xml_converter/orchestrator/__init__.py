@@ -16,7 +16,6 @@ from dataclasses import dataclass
 
 from lxml import etree
 
-from ..csv_parser import parse_csv
 from ..csv_parser import parse_csv_from_profile  # CSVParsingError not used directly
 from ..rule_engine import load_rules
 from ..rule_engine import apply_rules  # RuleApplicationError not used directly
@@ -106,6 +105,45 @@ class Orchestrator:
             "skip_comments": profile_params.get("skip_comments", True),
         }
         return parse_csv_from_profile(full_profile)
+
+    def _transform_record(self, record_data: Dict[str, Any], rules: List[Dict[str, Any]], model_class):
+        """Apply rules to a record and return the transformed model instance."""
+        transformed_list = apply_rules([record_data], rules, model_class, lookup_tables=self.lookup_tables)
+        if not transformed_list:
+            return None
+        model_instance = transformed_list[0]
+        if hasattr(model_instance, "errors") and model_instance.errors:
+            logger.warning("Rule application for %s resulted in errors: %s", model_class.__name__, model_instance.errors)
+        return model_instance
+
+    def _generate_xml_string(self, model_instance: Any, generator_func) -> str:
+        """Generate an XML string from the model instance using ``generator_func``."""
+        xml_obj = generator_func(model_instance)
+        if isinstance(xml_obj, etree._Element):
+            return etree.tostring(xml_obj, pretty_print=True, xml_declaration=True, encoding="utf-8").decode("utf-8")
+        return str(xml_obj)
+
+    def _validate_and_write_xml(
+        self,
+        xml_string: str,
+        xsd_file_path: str,
+        out_path: Path,
+        log_prefix: str,
+        invalid_out_path: Optional[Path] = None,
+    ) -> bool:
+        """Validate ``xml_string`` and write to ``out_path`` when valid."""
+        is_valid, errors = validate_xml(xml_string, xsd_file_path)
+        if not is_valid:
+            logger.error("%s for %s FAILED validation: %s", log_prefix, out_path.stem, errors)
+            if invalid_out_path:
+                with open(invalid_out_path, "w", encoding="utf-8") as f_err:
+                    f_err.write(xml_string)
+                logger.info("Saved invalid %s for %s to: %s", log_prefix, out_path.stem, invalid_out_path)
+            return False
+        with open(out_path, "w", encoding="utf-8") as f:
+            f.write(xml_string)
+        logger.info("Wrote %s XML to: %s", log_prefix, out_path)
+        return True
 
     def generate_aggregated_index_xml(self, data_xml_files: List[str], claims_xml_files: List[str], output_xml_path: str, xsd_file_path: str, rules_file_path: Optional[str] = None) -> bool:
         """Generate index.xml using aggregation and rule based transformation."""
@@ -270,65 +308,29 @@ class Orchestrator:
                     f"Processing {short_prefix.upper()} record {i+1}/{parsed_data_rows_count}: {row_doc_id}"
                 )
                 try:
-                    transformed_list = apply_rules(
-                        [record_data], rules, model_class, lookup_tables=self.lookup_tables
-                    )
-                    if not transformed_list:
+                    model_instance = self._transform_record(record_data, rules, model_class)
+                    if model_instance is None:
                         logger.warning(
                             f"No data after rules for {short_prefix.upper()} record {row_doc_id}."
                         )
                         continue
 
-                    transformed_model_instance = transformed_list[0]
-                    logger.debug(
-                        f"Transformed {short_prefix.upper()} model instance {row_doc_id}: {transformed_model_instance}"
-                    )
-                    if hasattr(transformed_model_instance, "errors") and transformed_model_instance.errors:
-                        logger.warning(
-                            "Rule application for %s %s resulted in errors: %s",
-                            short_prefix.upper(),
-                            row_doc_id,
-                            transformed_model_instance.errors,
-                        )
+                    xml_string = self._generate_xml_string(model_instance, generator_func)
 
-                    xml_obj = generator_func(transformed_model_instance)
-                    if isinstance(xml_obj, etree._Element):
-                        xml_string = etree.tostring(
-                            xml_obj,
-                            pretty_print=True,
-                            xml_declaration=True,
-                            encoding="utf-8",
-                        ).decode("utf-8")
-                    else:
-                        xml_string = str(xml_obj)
+                    invalid_path = None
+                    if model_class is not HealthGuidanceRecord:
+                        invalid_path = Path(output_xml_dir) / f"{output_file_prefix}{row_doc_id}.invalid.xml"
 
-                    is_valid, errors = validate_xml(xml_string, xsd_file_path)
-                    if not is_valid:
-                        logger.error(
-                            "%s for %s FAILED validation: %s",
-                            short_prefix.upper(),
-                            row_doc_id,
-                            errors,
-                        )
-                        if model_class is not HealthGuidanceRecord:
-                            invalid_out_path = Path(output_xml_dir) / (
-                                f"{output_file_prefix}{row_doc_id}.invalid.xml"
-                            )
-                            with open(invalid_out_path, "w", encoding="utf-8") as f_err:
-                                f_err.write(xml_string)
-                            logger.info(
-                                "Saved invalid %s for %s to: %s",
-                                short_prefix.upper(),
-                                row_doc_id,
-                                invalid_out_path,
-                            )
-                        continue
+                    out_path = Path(output_xml_dir) / f"{output_file_prefix}{row_doc_id}.xml"
 
-                    out_path = Path(output_xml_dir) / (f"{output_file_prefix}{row_doc_id}.xml")
-                    with open(out_path, "w", encoding="utf-8") as f:
-                        f.write(xml_string)
-                    logger.info("Wrote %s XML to: %s", short_prefix.upper(), out_path)
-                    successful_files.append(str(out_path))
+                    if self._validate_and_write_xml(
+                        xml_string,
+                        xsd_file_path,
+                        out_path,
+                        short_prefix.upper(),
+                        invalid_out_path=invalid_path,
+                    ):
+                        successful_files.append(str(out_path))
                 except Exception as e_rec:
                     logger.error(
                         "Error on %s record %s: %s",
