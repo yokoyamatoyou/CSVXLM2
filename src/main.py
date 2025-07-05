@@ -1,5 +1,21 @@
 # -*- coding: utf-8 -*-
-"""Command-line interface for CSV to XML conversion demo."""
+"""Command-line interface for CSVXLM.
+
+This module exposes a small CLI around the conversion orchestrator.  It can be
+invoked directly from the project root::
+
+    python src/main.py [-c CONFIG] [-p PROFILE]
+
+where ``CONFIG`` is the path to the JSON configuration file and ``PROFILE`` is a
+CSV profile name defined inside that configuration.  When no options are
+provided the script defaults to ``config_rules/config.json`` and the profile
+``grouped_checkup_profile``.
+
+The default configuration expects example CSV inputs in ``data/input_csvs/`` and
+produces XML files under ``data/output_xmls/``.  A ZIP archive containing the
+results is written to ``data/output_archives/``.  The various input file paths,
+rule files and XSD locations can be customised in the configuration JSON.
+"""
 
 import argparse
 import logging
@@ -66,18 +82,43 @@ DEFAULT_GROUPED_CHECKUP_FILE_PREFIX = "hc_grp_cda_"
 DEFAULT_ARCHIVE_OUTPUT_DIR = "data/output_archives/"
 
 
-def parse_args(args=None):
-    """Parse command line arguments."""
+def parse_args(args: list[str] | None = None) -> argparse.Namespace:
+    """Parse command line arguments for the CLI.
+
+    Parameters
+    ----------
+    args : list[str] | None, optional
+        Argument list to parse. When ``None`` the values are taken from
+        ``sys.argv``.
+
+    Returns
+    -------
+    argparse.Namespace
+        Parsed arguments object.
+    """
 
     parser = argparse.ArgumentParser(
-        description="CSV to MHLW XML conversion tool"
+        description="CSV to MHLW XML conversion tool",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "-c", "--config", default=DEFAULT_CONFIG_FILE,
-        help="Path to configuration JSON file")
+        "-c",
+        "--config",
+        default=DEFAULT_CONFIG_FILE,
+        help=(
+            "Path to the configuration JSON file. "
+            "This determines input paths, rule files and output locations."
+        ),
+    )
     parser.add_argument(
-        "-p", "--profile", default="grouped_checkup_profile",
-        help="CSV profile name defined in the config")
+        "-p",
+        "--profile",
+        default="grouped_checkup_profile",
+        help=(
+            "CSV profile name defined under 'csv_profiles' in the configuration. "
+            "Used to parse the input CSV files."
+        ),
+    )
     return parser.parse_args(args)
 
 
