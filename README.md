@@ -86,9 +86,15 @@ The application is configured to look for XSDs in these specific locations. The 
     ```bash
     python src/gui.py
     ```
-    Use the interface to select the configuration JSON and specify the CSV profile. The original CLI entry point (`src/main.py`) remains available for advanced usage.
-3.  Output XMLs will be generated in `data/output_xmls/` and ZIP archives in `data/output_archives/`.
-4.  Logs are written to the console and/or `logs/app.log` as specified in
+    Use the interface to select the configuration JSON and specify the CSV profile.
+3.  Alternatively, run the CLI directly:
+    ```bash
+    python src/main.py [-c CONFIG] [-p PROFILE]
+    ```
+    * `CONFIG` – path to a configuration JSON file (defaults to `config_rules/config.json`)
+    * `PROFILE` – name of the CSV profile defined in that config (defaults to `grouped_checkup_profile`)
+4.  Output XMLs will be generated in `data/output_xmls/` and ZIP archives in `data/output_archives/`.
+5.  Logs are written to the console and/or `logs/app.log` as specified in
     `config_rules/config.json`. Set `logging.console` or `logging.file` to `true`
     or `false` to control the destinations.
 
