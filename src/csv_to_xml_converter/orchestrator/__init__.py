@@ -15,16 +15,21 @@ from typing import Any, Dict, List, Optional
 
 from lxml import etree
 
-from ..csv_parser import parse_csv, parse_csv_from_profile # CSVParsingError not used directly in this file after changes
-from ..rule_engine import load_rules, apply_rules # RuleApplicationError not used directly
-from ..xml_generator import (
-    generate_index_xml, generate_summary_xml,
-    generate_health_checkup_cda, generate_health_guidance_cda,
-    generate_checkup_settlement_xml, generate_guidance_settlement_xml,
-    # Import new parsing utilities
-    get_claim_amount_from_cc08, get_claim_amount_from_gc08, get_subject_count_from_cda
-)
-from ..validator import validate_xml, XMLValidationError
+from ..csv_parser import parse_csv
+from ..csv_parser import parse_csv_from_profile  # CSVParsingError not used directly
+from ..rule_engine import load_rules
+from ..rule_engine import apply_rules  # RuleApplicationError not used directly
+from ..xml_generator import generate_index_xml
+from ..xml_generator import generate_summary_xml
+from ..xml_generator import generate_health_checkup_cda
+from ..xml_generator import generate_health_guidance_cda
+from ..xml_generator import generate_checkup_settlement_xml
+from ..xml_generator import generate_guidance_settlement_xml
+from ..xml_generator import get_claim_amount_from_cc08
+from ..xml_generator import get_claim_amount_from_gc08
+from ..xml_generator import get_subject_count_from_cda
+from ..validator import validate_xml
+from ..validator import XMLValidationError
 from ..models import (
     HealthCheckupRecord, HealthGuidanceRecord,
     CheckupSettlementRecord, GuidanceSettlementRecord,
@@ -38,6 +43,7 @@ class Orchestrator:
     """Coordinate CSV parsing, rule application and XML generation."""
 
     def __init__(self, config: Dict[str, Any]):
+        """Initialize the orchestrator with configuration values."""
         self.config = config
         self.csv_profiles = config.get("csv_profiles", {})
         self.lookup_tables = config.get("lookup_tables", {}).copy()
@@ -63,6 +69,7 @@ class Orchestrator:
         logger.info("Orchestrator initialized (CSV profiles and OID catalog processing attempted).")
 
     def _get_csv_profile(self, profile_name: str) -> Dict[str, Any]:
+        """Return CSV profile configuration for a given name."""
         # This method might be less relevant if CSV parsing for index/summary is removed,
         # but could still be used by other CSV processing methods.
         # For now, keeping it as it's used by CDA/Settlement processing.
@@ -200,10 +207,18 @@ class Orchestrator:
             logger.error(f"Error generating aggregated summary.xml: {e}", exc_info=True)
             return False
 
-    def process_csv_to_health_checkup_cdas(self, csv_file_path: str, rules_file_path: str, xsd_file_path: str, output_xml_dir: str, output_file_prefix: str = "hc_cda_", csv_profile_name: str = "health_checkup_full") -> List[str]:
-        # This method and others below are not part of this subtask's changes but are kept.
-        # They might need future updates if their CSV parsing relies on the old parse_csv behavior
-        # or if they need to use the new parse_csv or parse_csv_from_profile.
+    def process_csv_to_health_checkup_cdas(
+        self,
+        csv_file_path: str,
+        rules_file_path: str,
+        xsd_file_path: str,
+        output_xml_dir: str,
+        output_file_prefix: str = "hc_cda_",
+        csv_profile_name: str = "health_checkup_full",
+    ) -> List[str]:
+        """Convert a health checkup CSV into CDA XML files."""
+        # Existing implementation relies on parse_csv_from_profile
+        # and may need updates if the parsing API changes.
         logger.info(
             f"Processing Health Checkup CDAs from {csv_file_path} using profile \"{csv_profile_name}\""
         )
@@ -309,8 +324,19 @@ class Orchestrator:
         )
         return successful_files
 
-    def process_csv_to_health_guidance_cdas(self, csv_file_path: str, rules_file_path: str, xsd_file_path: str, output_xml_dir: str, output_file_prefix: str = "hg_cda_", csv_profile_name: str = "health_guidance_full") -> List[str]:
-        logger.info(f"Processing Health Guidance CDAs from {csv_file_path} using profile \"{csv_profile_name}\"")
+    def process_csv_to_health_guidance_cdas(
+        self,
+        csv_file_path: str,
+        rules_file_path: str,
+        xsd_file_path: str,
+        output_xml_dir: str,
+        output_file_prefix: str = "hg_cda_",
+        csv_profile_name: str = "health_guidance_full",
+    ) -> List[str]:
+        """Convert a health guidance CSV into CDA XML files."""
+        logger.info(
+            f"Processing Health Guidance CDAs from {csv_file_path} using profile \"{csv_profile_name}\""
+        )
         successful_files = []
         parsed_data_rows_count = 0
         try:
@@ -397,7 +423,16 @@ class Orchestrator:
         )
         return successful_files
 
-    def process_csv_to_checkup_settlement_xmls(self, csv_file_path: str, rules_file_path: str, xsd_file_path: str, output_xml_dir: str, output_file_prefix: str = "cs_", csv_profile_name: str = "checkup_settlement") -> List[str]:
+    def process_csv_to_checkup_settlement_xmls(
+        self,
+        csv_file_path: str,
+        rules_file_path: str,
+        xsd_file_path: str,
+        output_xml_dir: str,
+        output_file_prefix: str = "cs_",
+        csv_profile_name: str = "checkup_settlement",
+    ) -> List[str]:
+        """Convert a checkup settlement CSV into XML files."""
         logger.info(
             f"Processing Checkup Settlements from {csv_file_path} using profile \"{csv_profile_name}\""
         )
@@ -487,7 +522,16 @@ class Orchestrator:
         )
         return successful_files
 
-    def process_csv_to_guidance_settlement_xmls(self, csv_file_path: str, rules_file_path: str, xsd_file_path: str, output_xml_dir: str, output_file_prefix: str = "gs_", csv_profile_name: str = "guidance_settlement") -> List[str]:
+    def process_csv_to_guidance_settlement_xmls(
+        self,
+        csv_file_path: str,
+        rules_file_path: str,
+        xsd_file_path: str,
+        output_xml_dir: str,
+        output_file_prefix: str = "gs_",
+        csv_profile_name: str = "guidance_settlement",
+    ) -> List[str]:
+        """Convert a guidance settlement CSV into XML files."""
         logger.info(
             f"Processing Guidance Settlements from {csv_file_path} using profile \"{csv_profile_name}\""
         )
@@ -602,9 +646,16 @@ class Orchestrator:
         )
         return successful_files
 
-    def create_submission_archive(self, index_xml_path: str, summary_xml_path: str,
-                                  data_xml_files: List[str], claims_xml_files: List[str],
-                                  archive_base_name: str, archive_output_dir: str) -> Optional[str]:
+    def create_submission_archive(
+        self,
+        index_xml_path: str,
+        summary_xml_path: str,
+        data_xml_files: List[str],
+        claims_xml_files: List[str],
+        archive_base_name: str,
+        archive_output_dir: str,
+    ) -> Optional[str]:
+        """Bundle generated XML files and XSDs into a ZIP archive."""
         logger.info(f"Creating archive: {archive_base_name}.zip in {archive_output_dir}")
 
         xsd_source_paths_config = self.config.get("paths", {}).get("xsd_source_path_for_archive")
@@ -718,6 +769,7 @@ class Orchestrator:
                     )
 
     def verify_archive_contents(self, zip_archive_path: str) -> bool:
+        """Validate XML files in a created archive against their bundled XSDs."""
         logger.info(f"Verifying contents of archive: {zip_archive_path}")
         temp_dir_obj = tempfile.TemporaryDirectory(prefix="zip_verify_")
         temp_dir_path = Path(temp_dir_obj.name)
