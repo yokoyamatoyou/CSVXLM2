@@ -57,23 +57,25 @@ def _extract_claim_amount(tree: etree._ElementTree, xpath: str) -> Optional[floa
         return None
 
 
-def get_claim_amount_from_cc08(xml_path: str) -> Optional[float]:
-    """Return the claim amount from a CC08 XML file."""
+def _get_claim_amount_by_xpath(xml_path: str, xpath: str) -> Optional[float]:
+    """Return the claim amount for ``xml_path`` using ``xpath``."""
     tree = _parse_xml(xml_path)
     if tree is None:
         return None
-    return _extract_claim_amount(
-        tree,
+    return _extract_claim_amount(tree, xpath)
+
+
+def get_claim_amount_from_cc08(xml_path: str) -> Optional[float]:
+    """Return the claim amount from a CC08 XML file."""
+    return _get_claim_amount_by_xpath(
+        xml_path,
         "/mhlw:checkupClaim/mhlw:settlement/mhlw:claimAmount/@value",
     )
 
 def get_claim_amount_from_gc08(xml_path: str) -> Optional[float]:
     """Return the claim amount from a GC08 XML file."""
-    tree = _parse_xml(xml_path)
-    if tree is None:
-        return None
-    return _extract_claim_amount(
-        tree,
+    return _get_claim_amount_by_xpath(
+        xml_path,
         "/gc:GuidanceClaimDocument/gc:settlementDetails/gc:claimAmount/@value",
     )
 
@@ -116,3 +118,10 @@ def get_subject_count_from_cda(xml_path: str) -> int:
         return 0
 
 
+
+__all__ = [
+    'get_claim_amount_from_cc08',
+    'get_claim_amount_from_gc08',
+    'get_claim_amount',
+    'get_subject_count_from_cda',
+]
