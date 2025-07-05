@@ -22,6 +22,15 @@ NAMESPACES = {
     'xsi': 'http://www.w3.org/2001/XMLSchema-instance'
 }
 
+# Map XML root tags to the XPath where their claim amounts are located.
+# This centralizes the mapping used by ``get_claim_amount``.
+CLAIM_AMOUNT_XPATHS = {
+    f"{{{NAMESPACES['mhlw']}}}checkupClaim":
+        "/mhlw:checkupClaim/mhlw:settlement/mhlw:claimAmount/@value",
+    f"{{{NAMESPACES['gc']}}}GuidanceClaimDocument":
+        "/gc:GuidanceClaimDocument/gc:settlementDetails/gc:claimAmount/@value",
+}
+
 def _get_claim_amount(xml_path: str, xpath: str) -> Optional[float]:
     """Helper to fetch a claim amount from an XML using the given XPath."""
     try:
@@ -73,11 +82,8 @@ def get_claim_amount(xml_path: str) -> Optional[float]:
         return None
 
     root_tag = tree.getroot().tag
-    if root_tag == f"{{{NAMESPACES['mhlw']}}}checkupClaim":
-        xpath = "/mhlw:checkupClaim/mhlw:settlement/mhlw:claimAmount/@value"
-    elif root_tag == f"{{{NAMESPACES['gc']}}}GuidanceClaimDocument":
-        xpath = "/gc:GuidanceClaimDocument/gc:settlementDetails/gc:claimAmount/@value"
-    else:
+    xpath = CLAIM_AMOUNT_XPATHS.get(root_tag)
+    if not xpath:
         logger.warning("Unsupported claim XML root %s in %s", root_tag, xml_path)
         return None
 
