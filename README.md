@@ -81,11 +81,11 @@ The application is configured to look for XSDs in these specific locations. The 
 
 1.  Install the dependencies listed in `requirements.txt` and ensure
     the XSD files are placed as described above.
-2.  Run the main script from the project root directory. Configuration and CSV
-    profile can be overridden via command line options:
+2.  Launch the Tkinter GUI to run the conversion workflow:
     ```bash
-    python src/main.py --config config_rules/config.json --profile grouped_checkup_profile
+    python src/gui.py
     ```
+    Use the interface to select the configuration JSON and specify the CSV profile. The original CLI entry point (`src/main.py`) remains available for advanced usage.
 3.  Output XMLs will be generated in `data/output_xmls/` and ZIP archives in `data/output_archives/`.
 4.  Logs are written to the console and/or `logs/app.log` as specified in
     `config_rules/config.json`. Set `logging.console` or `logging.file` to `true`
@@ -126,6 +126,8 @@ The implementation is divided into five phases:
    * Aggregate counts and totals from the generated XMLs to produce index and summary files.
 5. **Phase 5 – ZIP Packaging**
    * Assemble the XML files and schemas into a submission archive with the required directory structure.
+6. **Phase 6 – GUI Integration**
+   * Provide a simple Tkinter interface for selecting configuration files and running the conversion process.
 
 ## Phase 2 Progress
 
