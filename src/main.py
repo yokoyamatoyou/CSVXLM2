@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
+"""Command-line interface for CSV to XML conversion demo."""
+
 import argparse
-import os
 import logging
-from datetime import datetime
+import os
 import zipfile
+from datetime import datetime
 from pathlib import Path
+
 from csv_to_xml_converter.config import load_config
 from csv_to_xml_converter.logger import setup_logger
 from csv_to_xml_converter.orchestrator import Orchestrator
@@ -23,10 +26,29 @@ DEFAULT_INDEX_XSD_FILE = XSD_GENERAL_BASE + "ix08_V08.xsd"
 DEFAULT_SUMMARY_XSD_FILE = XSD_GENERAL_BASE + "su08_V08.xsd"
 
 # Paths for individual document generation (CDAs, Settlements)
-DEFAULT_CDA_FULL_INPUT_CSV = "data/input_csvs/sample_health_checkup_full.csv"; DEFAULT_CDA_FULL_RULES_FILE = "config_rules/health_checkup_full_rules.json"; DEFAULT_CDA_FULL_XSD_FILE = XSD_OFFICIAL_BASE + "hc08_V08.xsd"; DEFAULT_CDA_FULL_OUTPUT_DIR = "data/output_xmls/cda_checkup_full/"; DEFAULT_CDA_FULL_FILE_PREFIX = "hc_cda_"
-DEFAULT_HG_CDA_FULL_INPUT_CSV = "data/input_csvs/sample_health_guidance_full.csv"; DEFAULT_HG_CDA_FULL_RULES_FILE = "config_rules/health_guidance_full_rules.json"; DEFAULT_HG_CDA_XSD_FILE = XSD_GENERAL_BASE + "hg08_V08.xsd"; DEFAULT_HG_CDA_FULL_OUTPUT_DIR = "data/output_xmls/cda_guidance_full/"; DEFAULT_HG_CDA_FILE_PREFIX = "hg_cda_"
-DEFAULT_CS_INPUT_CSV = "data/input_csvs/sample_checkup_settlement.csv"; DEFAULT_CS_RULES_FILE = "config_rules/checkup_settlement_rules.json"; DEFAULT_CS_XSD_FILE = XSD_GENERAL_BASE + "cc08_V08.xsd"; DEFAULT_CS_OUTPUT_DIR = "data/output_xmls/settlements_checkup/"; DEFAULT_CS_FILE_PREFIX = "cs_"
-DEFAULT_GS_INPUT_CSV = "data/input_csvs/sample_guidance_settlement.csv"; DEFAULT_GS_RULES_FILE = "config_rules/guidance_settlement_rules.json"; DEFAULT_GS_XSD_FILE = XSD_GENERAL_BASE + "gc08_V08.xsd"; DEFAULT_GS_OUTPUT_DIR = "data/output_xmls/settlements_guidance/"; DEFAULT_GS_FILE_PREFIX = "gs_"
+DEFAULT_CDA_FULL_INPUT_CSV = "data/input_csvs/sample_health_checkup_full.csv"
+DEFAULT_CDA_FULL_RULES_FILE = "config_rules/health_checkup_full_rules.json"
+DEFAULT_CDA_FULL_XSD_FILE = XSD_OFFICIAL_BASE + "hc08_V08.xsd"
+DEFAULT_CDA_FULL_OUTPUT_DIR = "data/output_xmls/cda_checkup_full/"
+DEFAULT_CDA_FULL_FILE_PREFIX = "hc_cda_"
+
+DEFAULT_HG_CDA_FULL_INPUT_CSV = "data/input_csvs/sample_health_guidance_full.csv"
+DEFAULT_HG_CDA_FULL_RULES_FILE = "config_rules/health_guidance_full_rules.json"
+DEFAULT_HG_CDA_XSD_FILE = XSD_GENERAL_BASE + "hg08_V08.xsd"
+DEFAULT_HG_CDA_FULL_OUTPUT_DIR = "data/output_xmls/cda_guidance_full/"
+DEFAULT_HG_CDA_FILE_PREFIX = "hg_cda_"
+
+DEFAULT_CS_INPUT_CSV = "data/input_csvs/sample_checkup_settlement.csv"
+DEFAULT_CS_RULES_FILE = "config_rules/checkup_settlement_rules.json"
+DEFAULT_CS_XSD_FILE = XSD_GENERAL_BASE + "cc08_V08.xsd"
+DEFAULT_CS_OUTPUT_DIR = "data/output_xmls/settlements_checkup/"
+DEFAULT_CS_FILE_PREFIX = "cs_"
+
+DEFAULT_GS_INPUT_CSV = "data/input_csvs/sample_guidance_settlement.csv"
+DEFAULT_GS_RULES_FILE = "config_rules/guidance_settlement_rules.json"
+DEFAULT_GS_XSD_FILE = XSD_GENERAL_BASE + "gc08_V08.xsd"
+DEFAULT_GS_OUTPUT_DIR = "data/output_xmls/settlements_guidance/"
+DEFAULT_GS_FILE_PREFIX = "gs_"
 # Paths for Grouped Checkup CDA Test
 DEFAULT_GROUPED_CHECKUP_CSV = "data/input_csvs/sample_grouped_checkup.csv"
 DEFAULT_GROUPED_CHECKUP_RULES_FILE = "config_rules/grouped_checkup_rules.json"
@@ -36,7 +58,11 @@ DEFAULT_GROUPED_CHECKUP_FILE_PREFIX = "hc_grp_cda_"
 DEFAULT_ARCHIVE_OUTPUT_DIR = "data/output_archives/"
 
 def parse_args(args=None):
-    parser = argparse.ArgumentParser(description="CSV to MHLW XML conversion tool")
+    """Parse command line arguments."""
+
+    parser = argparse.ArgumentParser(
+        description="CSV to MHLW XML conversion tool"
+    )
     parser.add_argument(
         "-c", "--config", default=DEFAULT_CONFIG_FILE,
         help="Path to configuration JSON file")
@@ -47,6 +73,8 @@ def parse_args(args=None):
 
 
 def main(cli_args=None):
+    """Run conversion workflow using provided CLI arguments."""
+
     cli = parse_args(cli_args)
     config_path = cli.config
     app_config = {}
@@ -167,4 +195,5 @@ def main(cli_args=None):
         main_logger.warning("Skipping archiving: missing critical aggregated XMLs or no data/claims files generated.")
     main_logger.info("Application finished.")
 
-if __name__ == "__main__": main()
+if __name__ == "__main__":
+    main()
