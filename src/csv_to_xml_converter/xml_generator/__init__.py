@@ -16,6 +16,7 @@ from . import xml_parsing_utils
 from .xml_parsing_utils import (
     get_claim_amount_from_cc08,
     get_claim_amount_from_gc08,
+    get_claim_amount,
     get_subject_count_from_cda,
 )
 
@@ -28,6 +29,7 @@ __all__ = [
     "generate_guidance_settlement_xml",
     "get_claim_amount_from_cc08",
     "get_claim_amount_from_gc08",
+    "get_claim_amount",
     "get_subject_count_from_cda",
 ]
 
