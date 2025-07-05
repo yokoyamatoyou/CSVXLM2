@@ -468,104 +468,94 @@ class Orchestrator:
             logger.warning("`xsd_source_path_for_archive` in config not found or not a string/list. Defaulting to 'data/xsd_schemas/' for archive XSDs.")
             xsd_source_paths = [Path("data/xsd_schemas")]
 
-        temp_build_parent_dir = Path(archive_output_dir) / f"_temp_build_{archive_base_name}_{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
-        tmp_root = temp_build_parent_dir / archive_base_name
         final_zip = Path(archive_output_dir) / f"{archive_base_name}.zip"
         try:
-            if temp_build_parent_dir.exists():
-                shutil.rmtree(temp_build_parent_dir)
-            d_dir = tmp_root / "DATA"
-            d_dir.mkdir(parents=True, exist_ok=True)
-            c_dir = tmp_root / "CLAIMS"
-            c_dir.mkdir(parents=True, exist_ok=True)
-            x_dir = tmp_root / "XSD"
-            x_dir.mkdir(parents=True, exist_ok=True)
-            xc_dir = x_dir / "coreschemas"
-            xc_dir.mkdir(parents=True, exist_ok=True)
+            with tempfile.TemporaryDirectory() as temp_dir:
+                tmp_root = Path(temp_dir) / archive_base_name
+                d_dir = tmp_root / "DATA"
+                d_dir.mkdir(parents=True, exist_ok=True)
+                c_dir = tmp_root / "CLAIMS"
+                c_dir.mkdir(parents=True, exist_ok=True)
+                x_dir = tmp_root / "XSD"
+                x_dir.mkdir(parents=True, exist_ok=True)
+                xc_dir = x_dir / "coreschemas"
+                xc_dir.mkdir(parents=True, exist_ok=True)
 
-            if index_xml_path and Path(index_xml_path).exists():
-                shutil.copy2(index_xml_path, tmp_root / "index.xml")
-            else:
-                logger.warning(f"Index XML {index_xml_path} not found for archive.")
-            if summary_xml_path and Path(summary_xml_path).exists():
-                shutil.copy2(summary_xml_path, tmp_root / "summary.xml")
-            else:
-                logger.warning(f"Summary XML {summary_xml_path} not found for archive.")
-
-            for p_str in data_xml_files:
-                fp = Path(p_str)
-                if fp.exists():
-                    shutil.copy2(fp, d_dir / fp.name)
+                if index_xml_path and Path(index_xml_path).exists():
+                    shutil.copy2(index_xml_path, tmp_root / "index.xml")
                 else:
-                    logger.warning(f"Data file {fp} not found.")
-            for p_str in claims_xml_files:
-                fp = Path(p_str)
-                if fp.exists():
-                    shutil.copy2(fp, c_dir / fp.name)
+                    logger.warning(f"Index XML {index_xml_path} not found for archive.")
+                if summary_xml_path and Path(summary_xml_path).exists():
+                    shutil.copy2(summary_xml_path, tmp_root / "summary.xml")
                 else:
-                    logger.warning(f"Claim file {fp} not found.")
+                    logger.warning(f"Summary XML {summary_xml_path} not found for archive.")
+
+                for p_str in data_xml_files:
+                    fp = Path(p_str)
+                    if fp.exists():
+                        shutil.copy2(fp, d_dir / fp.name)
+                    else:
+                        logger.warning(f"Data file {fp} not found.")
+                for p_str in claims_xml_files:
+                    fp = Path(p_str)
+                    if fp.exists():
+                        shutil.copy2(fp, c_dir / fp.name)
+                    else:
+                        logger.warning(f"Claim file {fp} not found.")
 
 
-            for xsd_src_path in xsd_source_paths:
-                logger.info(f"Processing XSD source path for archive: {xsd_src_path}")
-                if xsd_src_path.exists() and xsd_src_path.is_dir():
-                    # Copy main XSDs
-                    for item in xsd_src_path.iterdir():
-                        if item.is_file() and item.name.lower().endswith(".xsd"):
-                            target_file = x_dir / item.name
-                            shutil.copy2(item, target_file)
-                            logger.debug(f"Copied XSD: {item} to {target_file}")
+                for xsd_src_path in xsd_source_paths:
+                    logger.info(f"Processing XSD source path for archive: {xsd_src_path}")
+                    if xsd_src_path.exists() and xsd_src_path.is_dir():
+                        # Copy main XSDs
+                        for item in xsd_src_path.iterdir():
+                            if item.is_file() and item.name.lower().endswith(".xsd"):
+                                target_file = x_dir / item.name
+                                shutil.copy2(item, target_file)
+                                logger.debug(f"Copied XSD: {item} to {target_file}")
 
-                    # Copy coreschemas
-                    core_schemas_dir = xsd_src_path / "coreschemas"
-                    if core_schemas_dir.exists() and core_schemas_dir.is_dir():
-                        for core_item in core_schemas_dir.iterdir():
-                            if core_item.is_file() and core_item.name.lower().endswith(".xsd"):
-                                target_core_file = xc_dir / core_item.name
-                                shutil.copy2(core_item, target_core_file)
-                                logger.debug(f"Copied core schema XSD: {core_item} to {target_core_file}")
-                else:
+                        # Copy coreschemas
+                        core_schemas_dir = xsd_src_path / "coreschemas"
+                        if core_schemas_dir.exists() and core_schemas_dir.is_dir():
+                            for core_item in core_schemas_dir.iterdir():
+                                if core_item.is_file() and core_item.name.lower().endswith(".xsd"):
+                                    target_core_file = xc_dir / core_item.name
+                                    shutil.copy2(core_item, target_core_file)
+                                    logger.debug(f"Copied core schema XSD: {core_item} to {target_core_file}")
+                    else:
+                        logger.warning(
+                            f"XSD source directory {xsd_src_path} not found or not a directory. Skipping."
+                        )
+
+                main_xsds = list(x_dir.glob("*.xsd"))
+                core_xsds = list(xc_dir.glob("*.xsd"))
+                if not main_xsds and not core_xsds:
                     logger.warning(
-                        f"XSD source directory {xsd_src_path} not found or not a directory. Skipping."
+                        f"No XSD files or coreschemas were copied to the archive from configured paths: {xsd_source_paths}"
                     )
 
-            main_xsds = list(x_dir.glob("*.xsd"))
-            core_xsds = list(xc_dir.glob("*.xsd"))
-            if not main_xsds and not core_xsds:
-                logger.warning(
-                    f"No XSD files or coreschemas were copied to the archive from configured paths: {xsd_source_paths}"
-                )
-
-            final_zip.parent.mkdir(parents=True, exist_ok=True)
-            with zipfile.ZipFile(final_zip, "w", zipfile.ZIP_DEFLATED) as zf:
-                for r_path_obj_walk_root, _, files_in_walk_dir in os.walk(tmp_root):
-                    for file_in_walk_dir in files_in_walk_dir:
-                        file_abs_path = Path(r_path_obj_walk_root) / file_in_walk_dir
-                        arcname = file_abs_path.relative_to(tmp_root.parent)
-                        zf.write(file_abs_path, arcname=arcname)
-                standard_dirs_to_ensure_in_zip = [d_dir, c_dir, x_dir, xc_dir]
-                for std_dir_path in standard_dirs_to_ensure_in_zip:
-                    if std_dir_path.is_dir():
-                        arc_dir_name = str(std_dir_path.relative_to(tmp_root.parent)).replace(os.sep, '/') + '/'
-                        try: zf.getinfo(arc_dir_name)
-                        except KeyError:
-                            dir_zipinfo = zipfile.ZipInfo(arc_dir_name, date_time=datetime.now().timetuple()[:6])
-                            dir_zipinfo.external_attr = 0o40755 << 16
-                            zf.writestr(dir_zipinfo, '')
-            logger.info("Archive created: %s", final_zip)
-            return str(final_zip)
+                final_zip.parent.mkdir(parents=True, exist_ok=True)
+                with zipfile.ZipFile(final_zip, "w", zipfile.ZIP_DEFLATED) as zf:
+                    for r_path_obj_walk_root, _, files_in_walk_dir in os.walk(tmp_root):
+                        for file_in_walk_dir in files_in_walk_dir:
+                            file_abs_path = Path(r_path_obj_walk_root) / file_in_walk_dir
+                            arcname = file_abs_path.relative_to(tmp_root.parent)
+                            zf.write(file_abs_path, arcname=arcname)
+                    standard_dirs_to_ensure_in_zip = [d_dir, c_dir, x_dir, xc_dir]
+                    for std_dir_path in standard_dirs_to_ensure_in_zip:
+                        if std_dir_path.is_dir():
+                            arc_dir_name = str(std_dir_path.relative_to(tmp_root.parent)).replace(os.sep, '/') + '/'
+                            try:
+                                zf.getinfo(arc_dir_name)
+                            except KeyError:
+                                dir_zipinfo = zipfile.ZipInfo(arc_dir_name, date_time=datetime.now().timetuple()[:6])
+                                dir_zipinfo.external_attr = 0o40755 << 16
+                                zf.writestr(dir_zipinfo, '')
+                logger.info("Archive created: %s", final_zip)
+                return str(final_zip)
         except Exception as e:
             logger.error("Error creating archive: %s", e, exc_info=True)
             return None
-        finally:
-            if temp_build_parent_dir.exists():
-                try:
-                    shutil.rmtree(temp_build_parent_dir)
-                    logger.debug("Cleaned temp dir: %s", temp_build_parent_dir)
-                except Exception as e_clean:
-                    logger.error(
-                        "Error cleaning temp dir %s: %s", temp_build_parent_dir, e_clean
-                    )
 
     def _collect_xml_validation_targets(
         self, archive_root: Path
