@@ -22,56 +22,43 @@ NAMESPACES = {
     'xsi': 'http://www.w3.org/2001/XMLSchema-instance'
 }
 
-def get_claim_amount_from_cc08(xml_path: str) -> Optional[float]:
-    """
-    Parses a CC08 XML file and extracts the total claim amount.
-    Placeholder: Actual XPath will depend on CC08 structure.
-    """
+def _get_claim_amount(xml_path: str, xpath: str) -> Optional[float]:
+    """Helper to fetch a claim amount from an XML using the given XPath."""
     try:
         tree = etree.parse(xml_path)
-        # XPath based on structure from generate_checkup_settlement_xml:
-        # /mhlw:checkupClaim/mhlw:settlement/mhlw:claimAmount/@value
-        # Note: xpath() returns a list of attribute values (strings), so take the first one.
-        amount_values = tree.xpath("/mhlw:checkupClaim/mhlw:settlement/mhlw:claimAmount/@value", namespaces=NAMESPACES)
+        amount_values = tree.xpath(xpath, namespaces=NAMESPACES)
         if amount_values:
             return float(amount_values[0])
-
-        logger.warning(f"Could not find claimAmount attribute in CC08 XML {xml_path} using XPath /mhlw:checkupClaim/mhlw:settlement/mhlw:claimAmount/@value")
+        logger.warning(
+            "Could not find claimAmount attribute in %s using XPath %s",
+            xml_path,
+            xpath,
+        )
         return None
     except etree.XMLSyntaxError as e:
-        logger.error(f"XMLSyntaxError parsing CC08 {xml_path}: {e}")
+        logger.error("XMLSyntaxError parsing %s: %s", xml_path, e)
         return None
     except ValueError as e:
-        logger.error(f"ValueError converting claim amount in {xml_path}: {e}")
+        logger.error("ValueError converting claim amount in %s: %s", xml_path, e)
         return None
-    except Exception as e:
-        logger.error(f"Unexpected error parsing CC08 {xml_path}: {e}")
+    except Exception as e:  # pragma: no cover - unexpected errors
+        logger.error("Unexpected error parsing %s: %s", xml_path, e)
         return None
+
+
+def get_claim_amount_from_cc08(xml_path: str) -> Optional[float]:
+    """Return the claim amount from a CC08 XML file."""
+    return _get_claim_amount(
+        xml_path,
+        "/mhlw:checkupClaim/mhlw:settlement/mhlw:claimAmount/@value",
+    )
 
 def get_claim_amount_from_gc08(xml_path: str) -> Optional[float]:
-    """
-    Parses a GC08 XML file and extracts the total claim amount.
-    XPath needs to be verified with actual GC08 structure.
-    """
-    try:
-        tree = etree.parse(xml_path)
-        # XPath based on actual GC08 structure:
-        # /gc:GuidanceClaimDocument/gc:settlementDetails/gc:claimAmount/@value
-        amount_values = tree.xpath("/gc:GuidanceClaimDocument/gc:settlementDetails/gc:claimAmount/@value", namespaces=NAMESPACES)
-        if amount_values:
-            return float(amount_values[0])
-
-        logger.warning(f"Could not find claimAmount attribute in GC08 XML {xml_path} using XPath /gc:GuidanceClaimDocument/gc:settlementDetails/gc:claimAmount/@value")
-        return None
-    except etree.XMLSyntaxError as e:
-        logger.error(f"XMLSyntaxError parsing {xml_path}: {e}")
-        return None
-    except ValueError as e:
-        logger.error(f"ValueError converting claim amount in {xml_path}: {e}")
-        return None
-    except Exception as e:
-        logger.error(f"Unexpected error parsing GC08 {xml_path}: {e}")
-        return None
+    """Return the claim amount from a GC08 XML file."""
+    return _get_claim_amount(
+        xml_path,
+        "/gc:GuidanceClaimDocument/gc:settlementDetails/gc:claimAmount/@value",
+    )
 
 def get_subject_count_from_cda(xml_path: str) -> int:
     """
