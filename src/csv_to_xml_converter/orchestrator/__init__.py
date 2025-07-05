@@ -3,8 +3,17 @@
 Orchestrates the CSV to XML conversion process for all document types.
 """
 
-import logging; import json; from typing import Dict, Any, List, Optional; import os; from lxml import etree; import zipfile; import shutil; from datetime import datetime, timezone; from pathlib import Path
-import tempfile # Added import
+import json
+import logging
+import os
+import shutil
+import tempfile
+import zipfile
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+from lxml import etree
 
 from ..csv_parser import parse_csv, parse_csv_from_profile # CSVParsingError not used directly in this file after changes
 from ..rule_engine import load_rules, apply_rules # RuleApplicationError not used directly
@@ -26,8 +35,11 @@ from ..models import (
 logger = logging.getLogger(__name__)
 
 class Orchestrator:
+    """Coordinate CSV parsing, rule application and XML generation."""
+
     def __init__(self, config: Dict[str, Any]):
-        self.config = config; self.csv_profiles = config.get("csv_profiles", {})
+        self.config = config
+        self.csv_profiles = config.get("csv_profiles", {})
         self.lookup_tables = config.get("lookup_tables", {}).copy()
 
         oid_catalog_path_from_config = config.get("oid_catalog_file")
@@ -192,8 +204,11 @@ class Orchestrator:
         # This method and others below are not part of this subtask's changes but are kept.
         # They might need future updates if their CSV parsing relies on the old parse_csv behavior
         # or if they need to use the new parse_csv or parse_csv_from_profile.
-        logger.info(f"Processing Health Checkup CDAs from {csv_file_path} using profile \"{csv_profile_name}\"")
-        successful_files = []; parsed_data_rows_count = 0;
+        logger.info(
+            f"Processing Health Checkup CDAs from {csv_file_path} using profile \"{csv_profile_name}\""
+        )
+        successful_files = []
+        parsed_data_rows_count = 0
         try:
             # Adapt to use parse_csv_from_profile
             profile_params = self._get_csv_profile(csv_profile_name)
@@ -207,44 +222,97 @@ class Orchestrator:
             }
             parsed_data_rows = parse_csv_from_profile(full_profile_for_parser)
             parsed_data_rows_count = len(parsed_data_rows)
-            if not parsed_data_rows: logger.error(f"No data from {csv_file_path}"); return []
-            rules = load_rules(rules_file_path); Path(output_xml_dir).mkdir(parents=True, exist_ok=True)
+            if not parsed_data_rows:
+                logger.error(f"No data from {csv_file_path}")
+                return []
+            rules = load_rules(rules_file_path)
+            Path(output_xml_dir).mkdir(parents=True, exist_ok=True)
             logger.info(f"Loaded {len(rules)} rules for Health Checkup CDA from: {rules_file_path}")
             model_class = HealthCheckupRecord
             for i, record_data in enumerate(parsed_data_rows):
-                row_doc_id = record_data.get("doc_id", f"unk_hc_doc_{i+1}"); logger.info(f"Processing HC CDA record {i+1}/{parsed_data_rows_count}: {row_doc_id}");
+                row_doc_id = record_data.get("doc_id", f"unk_hc_doc_{i+1}")
+                logger.info(
+                    f"Processing HC CDA record {i+1}/{parsed_data_rows_count}: {row_doc_id}"
+                )
                 try:
                     # Pass model_class to apply_rules
-                    transformed_list = apply_rules([record_data], rules, model_class, lookup_tables=self.lookup_tables)
-                    if not transformed_list: logger.warning(f"No data after rules for HC CDA record {row_doc_id}."); continue
+                    transformed_list = apply_rules(
+                        [record_data], rules, model_class, lookup_tables=self.lookup_tables
+                    )
+                    if not transformed_list:
+                        logger.warning(
+                            f"No data after rules for HC CDA record {row_doc_id}."
+                        )
+                        continue
 
                     transformed_model_instance = transformed_list[0]
                     logger.debug(f"Transformed HC CDA model instance {row_doc_id}: {transformed_model_instance}")
-                    if hasattr(transformed_model_instance, 'errors') and transformed_model_instance.errors:
-                         logger.warning(f"Rule application for HC CDA {row_doc_id} resulted in errors: {transformed_model_instance.errors}")
+                    if (
+                        hasattr(transformed_model_instance, "errors")
+                        and transformed_model_instance.errors
+                    ):
+                        logger.warning(
+                            "Rule application for HC CDA %s resulted in errors: %s",
+                            row_doc_id,
+                            transformed_model_instance.errors,
+                        )
 
                     # Pass model instance directly to generator
                     # The generator will be adapted later to use model.header.to_xml_dict() and access body components
                     # For now, pass header dict for _populate_cda_header. Body will be broken.
-                    cda_element = generate_health_checkup_cda(transformed_model_instance)
-                    xml_string = etree.tostring(cda_element, pretty_print=True, xml_declaration=True, encoding="utf-8").decode("utf-8")
+                    cda_element = generate_health_checkup_cda(
+                        transformed_model_instance
+                    )
+                    xml_string = etree.tostring(
+                        cda_element,
+                        pretty_print=True,
+                        xml_declaration=True,
+                        encoding="utf-8",
+                    ).decode("utf-8")
                     is_valid, errors = validate_xml(xml_string, xsd_file_path)
                     if not is_valid:
-                        logger.error(f"HC CDA for {row_doc_id} FAILED validation: {errors}");
-                        invalid_out_path = Path(output_xml_dir) / f"{output_file_prefix}{row_doc_id}.invalid.xml"
-                        with open(invalid_out_path, "w", encoding="utf-8") as f_err: f_err.write(xml_string)
-                        logger.info(f"Saved invalid HC CDA for {row_doc_id} to: {invalid_out_path}")
+                        logger.error(
+                            "HC CDA for %s FAILED validation: %s",
+                            row_doc_id,
+                            errors,
+                        )
+                        invalid_out_path = Path(output_xml_dir) / (
+                            f"{output_file_prefix}{row_doc_id}.invalid.xml"
+                        )
+                        with open(invalid_out_path, "w", encoding="utf-8") as f_err:
+                            f_err.write(xml_string)
+                        logger.info(
+                            "Saved invalid HC CDA for %s to: %s",
+                            row_doc_id,
+                            invalid_out_path,
+                        )
                         continue
-                    out_path = Path(output_xml_dir) / f"{output_file_prefix}{row_doc_id}.xml"
-                    with open(out_path, "w", encoding="utf-8") as f: f.write(xml_string)
-                    logger.info(f"Wrote HC CDA to: {out_path}"); successful_files.append(str(out_path))
-                except Exception as e_rec: logger.error(f"Error on HC CDA record {row_doc_id}: {e_rec}", exc_info=True)
-        except Exception as e_glob: logger.error(f"Global error in HC CDA processing: {e_glob}", exc_info=True)
-        logger.info(f"HC CDA generation finished. {len(successful_files)} of {parsed_data_rows_count} files generated."); return successful_files
+                    out_path = Path(output_xml_dir) / (
+                        f"{output_file_prefix}{row_doc_id}.xml"
+                    )
+                    with open(out_path, "w", encoding="utf-8") as f:
+                        f.write(xml_string)
+                    logger.info("Wrote HC CDA to: %s", out_path)
+                    successful_files.append(str(out_path))
+                except Exception as e_rec:
+                    logger.error(
+                        "Error on HC CDA record %s: %s", row_doc_id, e_rec, exc_info=True
+                    )
+        except Exception as e_glob:
+            logger.error(
+                "Global error in HC CDA processing: %s", e_glob, exc_info=True
+            )
+        logger.info(
+            "HC CDA generation finished. %d of %d files generated.",
+            len(successful_files),
+            parsed_data_rows_count,
+        )
+        return successful_files
 
     def process_csv_to_health_guidance_cdas(self, csv_file_path: str, rules_file_path: str, xsd_file_path: str, output_xml_dir: str, output_file_prefix: str = "hg_cda_", csv_profile_name: str = "health_guidance_full") -> List[str]:
         logger.info(f"Processing Health Guidance CDAs from {csv_file_path} using profile \"{csv_profile_name}\"")
-        successful_files = []; parsed_data_rows_count = 0;
+        successful_files = []
+        parsed_data_rows_count = 0
         try:
             profile_params = self._get_csv_profile(csv_profile_name)
             full_profile_for_parser = {
@@ -256,37 +324,85 @@ class Orchestrator:
             }
             parsed_data_rows = parse_csv_from_profile(full_profile_for_parser)
             parsed_data_rows_count = len(parsed_data_rows)
-            if not parsed_data_rows: logger.error(f"No data from {csv_file_path}"); return []
-            rules = load_rules(rules_file_path); Path(output_xml_dir).mkdir(parents=True, exist_ok=True)
+            if not parsed_data_rows:
+                logger.error(f"No data from {csv_file_path}")
+                return []
+            rules = load_rules(rules_file_path)
+            Path(output_xml_dir).mkdir(parents=True, exist_ok=True)
             logger.info(f"Loaded {len(rules)} rules for Health Guidance CDA from: {rules_file_path}")
             model_class = HealthGuidanceRecord
             for i, record_data in enumerate(parsed_data_rows):
-                row_doc_id = record_data.get("doc_id", f"unk_hg_doc_{i+1}"); logger.info(f"Processing HG CDA record {i+1}/{parsed_data_rows_count}: {row_doc_id}");
+                row_doc_id = record_data.get("doc_id", f"unk_hg_doc_{i+1}")
+                logger.info(
+                    f"Processing HG CDA record {i+1}/{parsed_data_rows_count}: {row_doc_id}"
+                )
                 try:
-                    transformed_list = apply_rules([record_data], rules, model_class, lookup_tables=self.lookup_tables)
-                    if not transformed_list: logger.warning(f"No data after rules for HG CDA record {row_doc_id}."); continue
+                    transformed_list = apply_rules(
+                        [record_data], rules, model_class, lookup_tables=self.lookup_tables
+                    )
+                    if not transformed_list:
+                        logger.warning(
+                            f"No data after rules for HG CDA record {row_doc_id}."
+                        )
+                        continue
 
                     transformed_model_instance = transformed_list[0]
                     logger.debug(f"Transformed HG CDA model instance {row_doc_id}: {transformed_model_instance}")
-                    if hasattr(transformed_model_instance, 'errors') and transformed_model_instance.errors:
-                         logger.warning(f"Rule application for HG CDA {row_doc_id} resulted in errors: {transformed_model_instance.errors}")
+                    if (
+                        hasattr(transformed_model_instance, "errors")
+                        and transformed_model_instance.errors
+                    ):
+                        logger.warning(
+                            "Rule application for HG CDA %s resulted in errors: %s",
+                            row_doc_id,
+                            transformed_model_instance.errors,
+                        )
 
                     # Pass model instance directly to generator
                     # For now, pass header dict for _populate_cda_header. Body will be broken.
-                    cda_element = generate_health_guidance_cda(transformed_model_instance)
-                    xml_string = etree.tostring(cda_element, pretty_print=True, xml_declaration=True, encoding="utf-8").decode("utf-8")
+                    cda_element = generate_health_guidance_cda(
+                        transformed_model_instance
+                    )
+                    xml_string = etree.tostring(
+                        cda_element,
+                        pretty_print=True,
+                        xml_declaration=True,
+                        encoding="utf-8",
+                    ).decode("utf-8")
                     is_valid, errors = validate_xml(xml_string, xsd_file_path)
-                    if not is_valid: logger.error(f"HG CDA for {row_doc_id} FAILED validation: {errors}"); continue
-                    out_path = Path(output_xml_dir) / f"{output_file_prefix}{row_doc_id}.xml"
-                    with open(out_path, "w", encoding="utf-8") as f: f.write(xml_string)
-                    logger.info(f"Wrote HG CDA to: {out_path}"); successful_files.append(str(out_path))
-                except Exception as e_rec: logger.error(f"Error on HG CDA record {row_doc_id}: {e_rec}", exc_info=True)
-        except Exception as e_glob: logger.error(f"Global error in HG CDA processing: {e_glob}", exc_info=True)
-        logger.info(f"HG CDA generation finished. {len(successful_files)} of {parsed_data_rows_count} files generated."); return successful_files
+                    if not is_valid:
+                        logger.error(
+                            "HG CDA for %s FAILED validation: %s", row_doc_id, errors
+                        )
+                        continue
+                    out_path = Path(output_xml_dir) / (
+                        f"{output_file_prefix}{row_doc_id}.xml"
+                    )
+                    with open(out_path, "w", encoding="utf-8") as f:
+                        f.write(xml_string)
+                    logger.info("Wrote HG CDA to: %s", out_path)
+                    successful_files.append(str(out_path))
+                except Exception as e_rec:
+                    logger.error(
+                        "Error on HG CDA record %s: %s", row_doc_id, e_rec, exc_info=True
+                    )
+        except Exception as e_glob:
+            logger.error(
+                "Global error in HG CDA processing: %s", e_glob, exc_info=True
+            )
+        logger.info(
+            "HG CDA generation finished. %d of %d files generated.",
+            len(successful_files),
+            parsed_data_rows_count,
+        )
+        return successful_files
 
     def process_csv_to_checkup_settlement_xmls(self, csv_file_path: str, rules_file_path: str, xsd_file_path: str, output_xml_dir: str, output_file_prefix: str = "cs_", csv_profile_name: str = "checkup_settlement") -> List[str]:
-        logger.info(f"Processing Checkup Settlements from {csv_file_path} using profile \"{csv_profile_name}\"")
-        successful_files = []; parsed_data_rows_count = 0;
+        logger.info(
+            f"Processing Checkup Settlements from {csv_file_path} using profile \"{csv_profile_name}\""
+        )
+        successful_files = []
+        parsed_data_rows_count = 0
         try:
             profile_params = self._get_csv_profile(csv_profile_name)
             full_profile_for_parser = {
@@ -298,39 +414,85 @@ class Orchestrator:
             }
             parsed_data_rows = parse_csv_from_profile(full_profile_for_parser)
             parsed_data_rows_count = len(parsed_data_rows)
-            if not parsed_data_rows: logger.error(f"No data from {csv_file_path}"); return []
-            rules = load_rules(rules_file_path); Path(output_xml_dir).mkdir(parents=True, exist_ok=True)
+            if not parsed_data_rows:
+                logger.error(f"No data from {csv_file_path}")
+                return []
+            rules = load_rules(rules_file_path)
+            Path(output_xml_dir).mkdir(parents=True, exist_ok=True)
             logger.info(f"Loaded {len(rules)} rules for Checkup Settlement from: {rules_file_path}")
             model_class = CheckupSettlementRecord
             for i, record_data in enumerate(parsed_data_rows):
-                row_doc_id = record_data.get("doc_id", f"unk_cs_doc_{i+1}"); logger.info(f"Processing CS record {i+1}/{parsed_data_rows_count}: {row_doc_id}");
+                row_doc_id = record_data.get("doc_id", f"unk_cs_doc_{i+1}")
+                logger.info(
+                    f"Processing CS record {i+1}/{parsed_data_rows_count}: {row_doc_id}"
+                )
                 try:
-                    transformed_list = apply_rules([record_data], rules, model_class, lookup_tables=self.lookup_tables)
-                    if not transformed_list: logger.warning(f"No data after rules for CS record {row_doc_id}."); continue
+                    transformed_list = apply_rules(
+                        [record_data], rules, model_class, lookup_tables=self.lookup_tables
+                    )
+                    if not transformed_list:
+                        logger.warning(
+                            f"No data after rules for CS record {row_doc_id}."
+                        )
+                        continue
 
                     transformed_model_instance = transformed_list[0]
                     logger.debug(f"Transformed CS model instance {row_doc_id}: {transformed_model_instance}")
-                    if hasattr(transformed_model_instance, 'errors') and transformed_model_instance.errors:
-                         logger.warning(f"Rule application for CS {row_doc_id} resulted in errors: {transformed_model_instance.errors}")
+                    if (
+                        hasattr(transformed_model_instance, "errors")
+                        and transformed_model_instance.errors
+                    ):
+                        logger.warning(
+                            "Rule application for CS %s resulted in errors: %s",
+                            row_doc_id,
+                            transformed_model_instance.errors,
+                        )
 
-                    xml_string = generate_checkup_settlement_xml(transformed_model_instance)
+                    xml_string = generate_checkup_settlement_xml(
+                        transformed_model_instance
+                    )
                     is_valid, errors = validate_xml(xml_string, xsd_file_path)
                     if not is_valid:
-                        logger.error(f"CS XML for {row_doc_id} FAILED validation: {errors}")
-                        invalid_out_path = Path(output_xml_dir) / f"{output_file_prefix}{row_doc_id}.invalid.xml"
-                        with open(invalid_out_path, "w", encoding="utf-8") as f_err: f_err.write(xml_string)
-                        logger.info(f"Saved invalid CS XML for {row_doc_id} to: {invalid_out_path}")
+                        logger.error(
+                            "CS XML for %s FAILED validation: %s", row_doc_id, errors
+                        )
+                        invalid_out_path = Path(output_xml_dir) / (
+                            f"{output_file_prefix}{row_doc_id}.invalid.xml"
+                        )
+                        with open(invalid_out_path, "w", encoding="utf-8") as f_err:
+                            f_err.write(xml_string)
+                        logger.info(
+                            "Saved invalid CS XML for %s to: %s", row_doc_id, invalid_out_path
+                        )
                         continue
-                    out_path = Path(output_xml_dir) / f"{output_file_prefix}{row_doc_id}.xml"
-                    with open(out_path, "w", encoding="utf-8") as f: f.write(xml_string)
-                    logger.info(f"Wrote CS XML to: {out_path}"); successful_files.append(str(out_path))
-                except Exception as e_rec: logger.error(f"Error on CS record {row_doc_id}: {e_rec}", exc_info=True)
-        except Exception as e_glob: logger.error(f"Global error in CS processing: {e_glob}", exc_info=True)
-        logger.info(f"CS XML generation finished. {len(successful_files)} of {parsed_data_rows_count} files generated."); return successful_files
+                    out_path = Path(output_xml_dir) / (
+                        f"{output_file_prefix}{row_doc_id}.xml"
+                    )
+                    with open(out_path, "w", encoding="utf-8") as f:
+                        f.write(xml_string)
+                    logger.info("Wrote CS XML to: %s", out_path)
+                    successful_files.append(str(out_path))
+                except Exception as e_rec:
+                    logger.error(
+                        "Error on CS record %s: %s", row_doc_id, e_rec, exc_info=True
+                    )
+        except Exception as e_glob:
+            logger.error(
+                "Global error in CS processing: %s", e_glob, exc_info=True
+            )
+        logger.info(
+            "CS XML generation finished. %d of %d files generated.",
+            len(successful_files),
+            parsed_data_rows_count,
+        )
+        return successful_files
 
     def process_csv_to_guidance_settlement_xmls(self, csv_file_path: str, rules_file_path: str, xsd_file_path: str, output_xml_dir: str, output_file_prefix: str = "gs_", csv_profile_name: str = "guidance_settlement") -> List[str]:
-        logger.info(f"Processing Guidance Settlements from {csv_file_path} using profile \"{csv_profile_name}\"")
-        successful_files = []; parsed_data_rows_count = 0;
+        logger.info(
+            f"Processing Guidance Settlements from {csv_file_path} using profile \"{csv_profile_name}\""
+        )
+        successful_files = []
+        parsed_data_rows_count = 0
         try:
             profile_params = self._get_csv_profile(csv_profile_name)
             full_profile_for_parser = {
@@ -342,8 +504,11 @@ class Orchestrator:
             }
             parsed_data_rows = parse_csv_from_profile(full_profile_for_parser)
             parsed_data_rows_count = len(parsed_data_rows)
-            if not parsed_data_rows: logger.error(f"No data from {csv_file_path}"); return []
-            rules = load_rules(rules_file_path); Path(output_xml_dir).mkdir(parents=True, exist_ok=True)
+            if not parsed_data_rows:
+                logger.error(f"No data from {csv_file_path}")
+                return []
+            rules = load_rules(rules_file_path)
+            Path(output_xml_dir).mkdir(parents=True, exist_ok=True)
             logger.info(f"Loaded {len(rules)} rules for Guidance Settlement from: {rules_file_path}")
 
             # Consistent timestamp for all records in this batch, or per record?
@@ -358,15 +523,31 @@ class Orchestrator:
 
             model_class = GuidanceSettlementRecord
             for i, record_data in enumerate(parsed_data_rows):
-                row_doc_id = record_data.get("doc_id", f"unk_gs_doc_{i+1}"); logger.info(f"Processing GS record {i+1}/{parsed_data_rows_count}: {row_doc_id}");
+                row_doc_id = record_data.get("doc_id", f"unk_gs_doc_{i+1}")
+                logger.info(
+                    f"Processing GS record {i+1}/{parsed_data_rows_count}: {row_doc_id}"
+                )
                 try:
-                    transformed_list = apply_rules([record_data], rules, model_class, lookup_tables=self.lookup_tables)
-                    if not transformed_list: logger.warning(f"No data after rules for GS record {row_doc_id}."); continue
+                    transformed_list = apply_rules(
+                        [record_data], rules, model_class, lookup_tables=self.lookup_tables
+                    )
+                    if not transformed_list:
+                        logger.warning(
+                            f"No data after rules for GS record {row_doc_id}."
+                        )
+                        continue
 
                     transformed_model_instance = transformed_list[0]
                     logger.debug(f"Transformed GS model instance {row_doc_id}: {transformed_model_instance}")
-                    if hasattr(transformed_model_instance, 'errors') and transformed_model_instance.errors:
-                         logger.warning(f"Rule application for GS {row_doc_id} resulted in errors: {transformed_model_instance.errors}")
+                    if (
+                        hasattr(transformed_model_instance, "errors")
+                        and transformed_model_instance.errors
+                    ):
+                        logger.warning(
+                            "Rule application for GS %s resulted in errors: %s",
+                            row_doc_id,
+                            transformed_model_instance.errors,
+                        )
 
                     if (
                         transformed_model_instance.document_id.extension
@@ -382,20 +563,44 @@ class Orchestrator:
                             f"Added default documentIdRootOid for GS record {row_doc_id}: {default_gs_doc_id_root}"
                         )
 
-                    xml_string = generate_guidance_settlement_xml(transformed_model_instance, current_time_iso)
+                    xml_string = generate_guidance_settlement_xml(
+                        transformed_model_instance, current_time_iso
+                    )
                     is_valid, errors = validate_xml(xml_string, xsd_file_path)
                     if not is_valid:
-                        logger.error(f"GS XML for {row_doc_id} FAILED validation: {errors}")
-                        invalid_out_path = Path(output_xml_dir) / f"{output_file_prefix}{row_doc_id}.invalid.xml"
-                        with open(invalid_out_path, "w", encoding="utf-8") as f_err: f_err.write(xml_string)
-                        logger.info(f"Saved invalid GS XML for {row_doc_id} to: {invalid_out_path}")
+                        logger.error(
+                            "GS XML for %s FAILED validation: %s", row_doc_id, errors
+                        )
+                        invalid_out_path = Path(output_xml_dir) / (
+                            f"{output_file_prefix}{row_doc_id}.invalid.xml"
+                        )
+                        with open(invalid_out_path, "w", encoding="utf-8") as f_err:
+                            f_err.write(xml_string)
+                        logger.info(
+                            "Saved invalid GS XML for %s to: %s", row_doc_id, invalid_out_path
+                        )
                         continue
-                    out_path = Path(output_xml_dir) / f"{output_file_prefix}{row_doc_id}.xml"
-                    with open(out_path, "w", encoding="utf-8") as f: f.write(xml_string)
-                    logger.info(f"Wrote GS XML to: {out_path}"); successful_files.append(str(out_path))
-                except Exception as e_rec: logger.error(f"Error on GS record {row_doc_id}: {e_rec}", exc_info=True)
-        except Exception as e_glob: logger.error(f"Global error in GS processing: {e_glob}", exc_info=True)
-        logger.info(f"GS XML generation finished. {len(successful_files)} of {parsed_data_rows_count} files generated."); return successful_files
+                    out_path = Path(output_xml_dir) / (
+                        f"{output_file_prefix}{row_doc_id}.xml"
+                    )
+                    with open(out_path, "w", encoding="utf-8") as f:
+                        f.write(xml_string)
+                    logger.info("Wrote GS XML to: %s", out_path)
+                    successful_files.append(str(out_path))
+                except Exception as e_rec:
+                    logger.error(
+                        "Error on GS record %s: %s", row_doc_id, e_rec, exc_info=True
+                    )
+        except Exception as e_glob:
+            logger.error(
+                "Global error in GS processing: %s", e_glob, exc_info=True
+            )
+        logger.info(
+            "GS XML generation finished. %d of %d files generated.",
+            len(successful_files),
+            parsed_data_rows_count,
+        )
+        return successful_files
 
     def create_submission_archive(self, index_xml_path: str, summary_xml_path: str,
                                   data_xml_files: List[str], claims_xml_files: List[str],
@@ -417,25 +622,38 @@ class Orchestrator:
         tmp_root = temp_build_parent_dir / archive_base_name
         final_zip = Path(archive_output_dir) / f"{archive_base_name}.zip"
         try:
-            if temp_build_parent_dir.exists(): shutil.rmtree(temp_build_parent_dir)
-            d_dir = tmp_root / "DATA"; d_dir.mkdir(parents=True, exist_ok=True)
-            c_dir = tmp_root / "CLAIMS"; c_dir.mkdir(parents=True, exist_ok=True)
-            x_dir = tmp_root / "XSD"; x_dir.mkdir(parents=True, exist_ok=True)
-            xc_dir = x_dir / "coreschemas"; xc_dir.mkdir(parents=True, exist_ok=True)
+            if temp_build_parent_dir.exists():
+                shutil.rmtree(temp_build_parent_dir)
+            d_dir = tmp_root / "DATA"
+            d_dir.mkdir(parents=True, exist_ok=True)
+            c_dir = tmp_root / "CLAIMS"
+            c_dir.mkdir(parents=True, exist_ok=True)
+            x_dir = tmp_root / "XSD"
+            x_dir.mkdir(parents=True, exist_ok=True)
+            xc_dir = x_dir / "coreschemas"
+            xc_dir.mkdir(parents=True, exist_ok=True)
 
-            if index_xml_path and Path(index_xml_path).exists(): shutil.copy2(index_xml_path, tmp_root / "index.xml")
-            else: logger.warning(f"Index XML {index_xml_path} not found for archive.")
-            if summary_xml_path and Path(summary_xml_path).exists(): shutil.copy2(summary_xml_path, tmp_root / "summary.xml")
-            else: logger.warning(f"Summary XML {summary_xml_path} not found for archive.")
+            if index_xml_path and Path(index_xml_path).exists():
+                shutil.copy2(index_xml_path, tmp_root / "index.xml")
+            else:
+                logger.warning(f"Index XML {index_xml_path} not found for archive.")
+            if summary_xml_path and Path(summary_xml_path).exists():
+                shutil.copy2(summary_xml_path, tmp_root / "summary.xml")
+            else:
+                logger.warning(f"Summary XML {summary_xml_path} not found for archive.")
 
             for p_str in data_xml_files:
                 fp = Path(p_str)
-                if fp.exists(): shutil.copy2(fp, d_dir / fp.name)
-                else: logger.warning(f"Data file {fp} not found.")
+                if fp.exists():
+                    shutil.copy2(fp, d_dir / fp.name)
+                else:
+                    logger.warning(f"Data file {fp} not found.")
             for p_str in claims_xml_files:
                 fp = Path(p_str)
-                if fp.exists(): shutil.copy2(fp, c_dir / fp.name)
-                else: logger.warning(f"Claim file {fp} not found.")
+                if fp.exists():
+                    shutil.copy2(fp, c_dir / fp.name)
+                else:
+                    logger.warning(f"Claim file {fp} not found.")
 
 
             for xsd_src_path in xsd_source_paths:
@@ -484,12 +702,20 @@ class Orchestrator:
                             dir_zipinfo = zipfile.ZipInfo(arc_dir_name, date_time=datetime.now().timetuple()[:6])
                             dir_zipinfo.external_attr = 0o40755 << 16
                             zf.writestr(dir_zipinfo, '')
-            logger.info(f"Archive created: {final_zip}"); return str(final_zip)
-        except Exception as e: logger.error(f"Error creating archive: {e}", exc_info=True); return None
+            logger.info("Archive created: %s", final_zip)
+            return str(final_zip)
+        except Exception as e:
+            logger.error("Error creating archive: %s", e, exc_info=True)
+            return None
         finally:
             if temp_build_parent_dir.exists():
-                try: shutil.rmtree(temp_build_parent_dir); logger.debug(f"Cleaned temp dir: {temp_build_parent_dir}")
-                except Exception as e_clean: logger.error(f"Error cleaning temp dir {temp_build_parent_dir}: {e_clean}")
+                try:
+                    shutil.rmtree(temp_build_parent_dir)
+                    logger.debug("Cleaned temp dir: %s", temp_build_parent_dir)
+                except Exception as e_clean:
+                    logger.error(
+                        "Error cleaning temp dir %s: %s", temp_build_parent_dir, e_clean
+                    )
 
     def verify_archive_contents(self, zip_archive_path: str) -> bool:
         logger.info(f"Verifying contents of archive: {zip_archive_path}")
@@ -531,10 +757,12 @@ class Orchestrator:
                     if item.is_file() and item.name.lower().endswith(".xml"):
                         xsd_name = None
                         file_type = "Unknown DATA"
-                        if item.name.startswith("hc_cda_"): # Health Checkup CDA
-                            xsd_name = "hc08_V08.xsd"; file_type = "Health Checkup CDA"
-                        elif item.name.startswith("hg_cda_"): # Health Guidance CDA
-                            xsd_name = "hg08_V08.xsd"; file_type = "Health Guidance CDA"
+                        if item.name.startswith("hc_cda_"):  # Health Checkup CDA
+                            xsd_name = "hc08_V08.xsd"
+                            file_type = "Health Checkup CDA"
+                        elif item.name.startswith("hg_cda_"):  # Health Guidance CDA
+                            xsd_name = "hg08_V08.xsd"
+                            file_type = "Health Guidance CDA"
 
                         if xsd_name:
                             xml_files_to_validate.append({"path": item, "xsd_name": xsd_name, "type": file_type})
@@ -548,10 +776,12 @@ class Orchestrator:
                     if item.is_file() and item.name.lower().endswith(".xml"):
                         xsd_name = None
                         file_type = "Unknown CLAIM"
-                        if item.name.startswith("cs_"): # Checkup Settlement
-                            xsd_name = "cc08_V08.xsd"; file_type = "Checkup Settlement"
-                        elif item.name.startswith("gs_"): # Guidance Settlement
-                            xsd_name = "gc08_V08.xsd"; file_type = "Guidance Settlement"
+                        if item.name.startswith("cs_"):  # Checkup Settlement
+                            xsd_name = "cc08_V08.xsd"
+                            file_type = "Checkup Settlement"
+                        elif item.name.startswith("gs_"):  # Guidance Settlement
+                            xsd_name = "gc08_V08.xsd"
+                            file_type = "Guidance Settlement"
 
                         if xsd_name:
                             xml_files_to_validate.append({"path": item, "xsd_name": xsd_name, "type": file_type})
