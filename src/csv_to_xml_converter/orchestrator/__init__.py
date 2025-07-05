@@ -84,6 +84,18 @@ class Orchestrator:
         effective_default = self.csv_profiles.get("default", default_p)
         return self.csv_profiles.get(profile_name, effective_default)
 
+    def _load_csv_records(self, csv_file_path: str, csv_profile_name: str) -> List[Dict[str, Any]]:
+        """Return list of CSV records using the named profile."""
+        profile_params = self._get_csv_profile(csv_profile_name)
+        full_profile = {
+            "source": csv_file_path,
+            "delimiter": profile_params.get("delimiter", ","),
+            "encoding": profile_params.get("encoding", "utf-8"),
+            "required_columns": profile_params.get("required_columns"),
+            "skip_comments": profile_params.get("skip_comments", True),
+        }
+        return parse_csv_from_profile(full_profile)
+
     def generate_aggregated_index_xml(self, data_xml_files: List[str], claims_xml_files: List[str], output_xml_path: str, xsd_file_path: str, rules_file_path: Optional[str] = None) -> bool:
         """Generate index.xml using aggregation and rule based transformation."""
         logger.info(f"Generating aggregated index.xml to {output_xml_path}")
@@ -225,17 +237,7 @@ class Orchestrator:
         successful_files = []
         parsed_data_rows_count = 0
         try:
-            # Adapt to use parse_csv_from_profile
-            profile_params = self._get_csv_profile(csv_profile_name)
-            full_profile_for_parser = {
-                "source": csv_file_path,
-                "delimiter": profile_params.get("delimiter", ","),
-                "encoding": profile_params.get("encoding", "utf-8"),
-                # "header" is implicitly handled by parse_csv discovering the header line
-                "required_columns": profile_params.get("required_columns"), # Pass through if defined
-                "skip_comments": profile_params.get("skip_comments", True)   # Pass through if defined
-            }
-            parsed_data_rows = parse_csv_from_profile(full_profile_for_parser)
+            parsed_data_rows = self._load_csv_records(csv_file_path, csv_profile_name)
             parsed_data_rows_count = len(parsed_data_rows)
             if not parsed_data_rows:
                 logger.error(f"No data from {csv_file_path}")
@@ -340,15 +342,7 @@ class Orchestrator:
         successful_files = []
         parsed_data_rows_count = 0
         try:
-            profile_params = self._get_csv_profile(csv_profile_name)
-            full_profile_for_parser = {
-                "source": csv_file_path,
-                "delimiter": profile_params.get("delimiter", ","),
-                "encoding": profile_params.get("encoding", "utf-8"),
-                "required_columns": profile_params.get("required_columns"),
-                "skip_comments": profile_params.get("skip_comments", True)
-            }
-            parsed_data_rows = parse_csv_from_profile(full_profile_for_parser)
+            parsed_data_rows = self._load_csv_records(csv_file_path, csv_profile_name)
             parsed_data_rows_count = len(parsed_data_rows)
             if not parsed_data_rows:
                 logger.error(f"No data from {csv_file_path}")
@@ -439,15 +433,7 @@ class Orchestrator:
         successful_files = []
         parsed_data_rows_count = 0
         try:
-            profile_params = self._get_csv_profile(csv_profile_name)
-            full_profile_for_parser = {
-                "source": csv_file_path,
-                "delimiter": profile_params.get("delimiter", ","),
-                "encoding": profile_params.get("encoding", "utf-8"),
-                "required_columns": profile_params.get("required_columns"),
-                "skip_comments": profile_params.get("skip_comments", True)
-            }
-            parsed_data_rows = parse_csv_from_profile(full_profile_for_parser)
+            parsed_data_rows = self._load_csv_records(csv_file_path, csv_profile_name)
             parsed_data_rows_count = len(parsed_data_rows)
             if not parsed_data_rows:
                 logger.error(f"No data from {csv_file_path}")
@@ -538,15 +524,7 @@ class Orchestrator:
         successful_files = []
         parsed_data_rows_count = 0
         try:
-            profile_params = self._get_csv_profile(csv_profile_name)
-            full_profile_for_parser = {
-                "source": csv_file_path,
-                "delimiter": profile_params.get("delimiter", ","),
-                "encoding": profile_params.get("encoding", "utf-8"),
-                "required_columns": profile_params.get("required_columns"),
-                "skip_comments": profile_params.get("skip_comments", True)
-            }
-            parsed_data_rows = parse_csv_from_profile(full_profile_for_parser)
+            parsed_data_rows = self._load_csv_records(csv_file_path, csv_profile_name)
             parsed_data_rows_count = len(parsed_data_rows)
             if not parsed_data_rows:
                 logger.error(f"No data from {csv_file_path}")
