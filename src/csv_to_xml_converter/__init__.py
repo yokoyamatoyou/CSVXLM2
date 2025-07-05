@@ -9,7 +9,10 @@
 
 VERSION = "0.1.0"
 
-print(f"csv_to_xml_converter package version {VERSION} initialized.")
+import logging
+
+logger = logging.getLogger(__name__)
+logger.info("csv_to_xml_converter package version %s initialized.", VERSION)
 
 from .models import (
     II_Element, CD_Element, MO_Element_Data,
