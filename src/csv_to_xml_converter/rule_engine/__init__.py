@@ -76,67 +76,120 @@ def round_number(v: Any, digits: int = 0) -> Optional[float]:
     except (ValueError, TypeError) as e:
         raise RuleApplicationError(f"Round conversion error: {v}") from e
 
-class RuleApplicationError(Exception): pass
+class RuleApplicationError(Exception):
+    """Raised when a rule fails to apply."""
+    pass
 
 def to_integer(v: Any) -> Optional[int]:
-    if v is None or str(v).strip() == "": return None;
-    try: return int(str(v));
-    except ValueError: raise RuleApplicationError(f"Int conversion error: {v}")
+    """Convert ``v`` to ``int`` if possible."""
+    if v is None or str(v).strip() == "":
+        return None
+    try:
+        return int(str(v))
+    except ValueError as exc:
+        raise RuleApplicationError(f"Int conversion error: {v}") from exc
 
 def to_date_yyyymmdd(v: Any) -> Optional[str]:
-    s_v: Optional[str] = None # Explicitly initialize s_v
-    if v is None: return None
+    """Convert various date formats to ``YYYYMMDD``."""
+    if v is None:
+        return None
+
     s_v = str(v).strip()
-    if not s_v: return None
-    m = re.match(r"^(\d{4})[\/-]?(\d{1,2})[\/-]?(\d{1,2})$", s_v);
-    if m: y,mo,d = m.groups(); return f"{y}{mo.zfill(2)}{d.zfill(2)}";
-    if re.match(r"^\d{8}$", s_v): return s_v;
+    if not s_v:
+        return None
+
+    match = re.match(r"^(\d{4})[\/-]?(\d{1,2})[\/-]?(\d{1,2})$", s_v)
+    if match:
+        y, mo, d = match.groups()
+        return f"{y}{mo.zfill(2)}{d.zfill(2)}"
+
+    if re.match(r"^\d{8}$", s_v):
+        return s_v
+
     raise RuleApplicationError(f"Date conversion error: {v}")
 
 def to_boolean(v: Any) -> Optional[bool]:
-    if v is None: return None; s_v = str(v).strip().lower();
-    if s_v in ["true", "1", "yes", "y"]: return True;
-    elif s_v in ["false", "0", "no", "n"]: return False;
-    elif s_v == "": return None;
+    """Convert truthy/falsey strings to ``bool``."""
+    if v is None:
+        return None
+
+    s_v = str(v).strip().lower()
+    if s_v in ["true", "1", "yes", "y"]:
+        return True
+    if s_v in ["false", "0", "no", "n"]:
+        return False
+    if s_v == "":
+        return None
+
     raise RuleApplicationError(f"Bool conversion error: {v}")
 
 def load_rules(p: str) -> List[Dict[str, Any]]:
+    """Load rule definitions from the given JSON file."""
     try:
-        with open(p, "r", encoding="utf-8") as fp: rules = json.load(fp);
-        if not isinstance(rules, list): raise ValueError("Rules file must be a JSON list.")
-        return rules;
-    except Exception as e: logger.exception(f"Err load rules {p}"); raise RuleApplicationError(f"Load err: {e}")
+        with open(p, "r", encoding="utf-8") as fp:
+            rules = json.load(fp)
+        if not isinstance(rules, list):
+            raise ValueError("Rules file must be a JSON list.")
+        return rules
+    except Exception as exc:  # pragma: no cover - configuration errors
+        logger.exception("Err load rules %s", p)
+        raise RuleApplicationError(f"Load err: {exc}") from exc
 
-def _evaluate_condition(c: Dict[str,Any], i_rec: Dict[str,Any], current_output_target: Any) -> bool:
-    f=c.get("input_field")
+def _evaluate_condition(
+    c: Dict[str, Any],
+    i_rec: Dict[str, Any],
+    current_output_target: Any,
+) -> bool:
+    """Evaluate a conditional mapping rule."""
+
+    field = c.get("input_field")
+
     # v_s is the source of the data for the condition check
-    v_s = current_output_target if c.get("source")=="output" else i_rec
+    v_s = current_output_target if c.get("source") == "output" else i_rec
 
     a_v = None
     # Check if the source is a dictionary (like input_rec or temp dicts) or a model instance
     if isinstance(v_s, dict):
-        a_v = v_s.get(f)
-    else: # Assumed to be a model instance
-        a_v = getattr(v_s, f, None)
+        a_v = v_s.get(field)
+    else:  # Assumed to be a model instance
+        a_v = getattr(v_s, field, None)
 
-    op=c.get("operator","equals"); cmp_v=c.get("value")
-    if op=="equals": return str(a_v)==str(cmp_v)
-    elif op == "not_equals": return str(a_v) != str(cmp_v)
-    elif op == "exists": return f is not None and a_v is not None
-    elif op == "not_exists": return a_v is None
-    elif op == "is_empty": return a_v is None or str(a_v).strip() == ""
-    elif op == "is_not_empty": return a_v is not None and str(a_v).strip() != ""
-    else: logger.warning(f"Unknown condition operator {op}"); return False
-    # This line should ideally not be reached if all ops are covered and return.
-    # Adding a default False return for safety, though it implies an unhandled case or logic error.
+    op = c.get("operator", "equals")
+    cmp_v = c.get("value")
+
+    if op == "equals":
+        return str(a_v) == str(cmp_v)
+    if op == "not_equals":
+        return str(a_v) != str(cmp_v)
+    if op == "exists":
+        return field is not None and a_v is not None
+    if op == "not_exists":
+        return a_v is None
+    if op == "is_empty":
+        return a_v is None or str(a_v).strip() == ""
+    if op == "is_not_empty":
+        return a_v is not None and str(a_v).strip() != ""
+
+    logger.warning("Unknown condition operator %s", op)
+    # Default False return for unhandled cases
     return False
 
 
-def _apply_single_rule(rule: Dict[str, Any], i_rec: Dict[str, Any], output_target: Any, lookups: Optional[Dict[str, Dict[str, Any]]] = None):
-    rt = rule.get("rule_type"); of = rule.get("output_field"); inf = rule.get("input_field")
+def _apply_single_rule(
+    rule: Dict[str, Any],
+    i_rec: Dict[str, Any],
+    output_target: Any,
+    lookups: Optional[Dict[str, Dict[str, Any]]] = None,
+) -> None:
+    """Apply a single transformation rule to ``output_target``."""
+
+    rt = rule.get("rule_type")
+    of = rule.get("output_field")
+    inf = rule.get("input_field")
     is_dict_target = isinstance(output_target, dict)
 
-    if rt in [None, "comment"]: return
+    if rt in [None, "comment"]:
+        return
 
     # Allow lookup_value with output_mappings to not have a primary output_field
     if rt == "lookup_value" and rule.get("output_mappings"):
@@ -146,31 +199,46 @@ def _apply_single_rule(rule: Dict[str, Any], i_rec: Dict[str, Any], output_targe
         return
 
     if rt == "direct_mapping":
-        if not inf: logger.warning(f"Direct mapping for {of} missing input_field: {rule}"); return
+        if not inf:
+            logger.warning("Direct mapping for %s missing input_field: %s", of, rule)
+            return
         if inf in i_rec:
-            if is_dict_target: output_target[of] = i_rec[inf]
-            else: _set_nested_attr(output_target, of, i_rec[inf])
+            if is_dict_target:
+                output_target[of] = i_rec[inf]
+            else:
+                _set_nested_attr(output_target, of, i_rec[inf])
     elif rt == "default_value":
-        val = rule.get("value"); cond_f = rule.get("input_field"); apply_default = True
+        val = rule.get("value")
+        cond_f = rule.get("input_field")
+        apply_default = True
         if cond_f:
             cond_f_val = i_rec.get(cond_f)
             apply_default = cond_f_val is None or str(cond_f_val).strip() == ""
         if apply_default:
-            if is_dict_target: output_target[of] = val
-            else: _set_nested_attr(output_target, of, val)
+            if is_dict_target:
+                output_target[of] = val
+            else:
+                _set_nested_attr(output_target, of, val)
 
         current_val_debug = output_target.get(of) if is_dict_target else getattr(output_target, of, "NOT_SET") # This getattr might fail for nested
         logger.debug(f"DEFAULT_VALUE: rule={rule}, input_field_condition='{cond_f}', value_in_input='{i_rec.get(cond_f)}', apply_default={apply_default}, output_field='{of}', value_set='{current_val_debug}'")
     elif rt == "data_type_conversion":
-        conv_type = rule.get("conversion_type"); val = i_rec.get(inf)
+        conv_type = rule.get("conversion_type")
+        val = i_rec.get(inf)
         converted_value = None
         if val is not None:
-            if conv_type == "to_integer": converted_value = to_integer(val)
-            elif conv_type == "to_date_yyyymmdd": converted_value = to_date_yyyymmdd(val)
-            elif conv_type == "to_boolean": converted_value = to_boolean(val)
-            else: raise RuleApplicationError(f"Unknown conversion_type: {conv_type}")
-        if is_dict_target: output_target[of] = converted_value
-        else: _set_nested_attr(output_target, of, converted_value)
+            if conv_type == "to_integer":
+                converted_value = to_integer(val)
+            elif conv_type == "to_date_yyyymmdd":
+                converted_value = to_date_yyyymmdd(val)
+            elif conv_type == "to_boolean":
+                converted_value = to_boolean(val)
+            else:
+                raise RuleApplicationError(f"Unknown conversion_type: {conv_type}")
+        if is_dict_target:
+            output_target[of] = converted_value
+        else:
+            _set_nested_attr(output_target, of, converted_value)
     elif rt == "round_number":
         digits = int(rule.get("digits", 0))
         val = i_rec.get(inf)
@@ -194,7 +262,9 @@ def _apply_single_rule(rule: Dict[str, Any], i_rec: Dict[str, Any], output_targe
         else:
             _set_nested_attr(output_target, of, result_val)
     elif rt == "lookup_value":
-        if not inf: logger.warning(f"Lookup for rule missing input_field: {rule}"); return # Removed 'of' as it might not be present
+        if not inf:
+            logger.warning("Lookup for rule missing input_field: %s", rule)
+            return  # Removed 'of' as it might not be present
 
         key_s_v = output_target.get(inf) if is_dict_target else getattr(output_target, inf, None)
         if key_s_v is None and inf in i_rec : key_s_v = i_rec.get(inf)
@@ -203,8 +273,13 @@ def _apply_single_rule(rule: Dict[str, Any], i_rec: Dict[str, Any], output_targe
         tbl_n = rule.get("lookup_table_name")
         # Ensure 'of' is handled correctly or if output_mappings is present
         logger.debug(f"LOOKUP_VALUE: lookup_input_field='{inf}', key_source_value='{key_s_v}', final_lookup_key='{lookup_k}', table_name='{tbl_n}'")
-        if not tbl_n: raise RuleApplicationError(f"Lookup rule missing table_name: {rule}")
-        if not lookups: logger.error(f"Lookup tables dictionary is missing/None for rule: {rule}"); raise RuleApplicationError("Lookup tables not provided")
+        if not tbl_n:
+            raise RuleApplicationError(f"Lookup rule missing table_name: {rule}")
+        if not lookups:
+            logger.error(
+                "Lookup tables dictionary is missing/None for rule: %s", rule
+            )
+            raise RuleApplicationError("Lookup tables not provided")
         actual_table = lookups.get(tbl_n)
         if actual_table is None:
             logger.warning(f"LOOKUP_VALUE: Lookup table \"{tbl_n}\" not found. Available: {list(lookups.keys())}")
@@ -282,11 +357,19 @@ def _apply_single_rule(rule: Dict[str, Any], i_rec: Dict[str, Any], output_targe
         output_field = rule.get("output_field") # 'of' is already defined but using rule's "output_field" for clarity
 
         if not calculation_name or not output_field:
-            logger.warning(f"Calculate rule missing calculation_name or output_field: {rule}"); return
+            logger.warning(
+                "Calculate rule missing calculation_name or output_field: %s",
+                rule,
+            )
+            return
 
         calc_func = CALCULATION_FUNCTIONS.get(calculation_name)
         if not calc_func:
-            logger.error(f"Calculation function '{calculation_name}' not found in CALCULATION_FUNCTIONS."); return
+            logger.error(
+                "Calculation function '%s' not found in CALCULATION_FUNCTIONS.",
+                calculation_name,
+            )
+            return
 
         kwargs = {}
         try:
@@ -297,24 +380,34 @@ def _apply_single_rule(rule: Dict[str, Any], i_rec: Dict[str, Any], output_targe
                 data_type = mapping_item.get("data_type")
 
                 if not source_field or not param_name:
-                    logger.warning(f"Invalid input_mapping item in calculate rule: {mapping_item}. Skipping this parameter."); continue
+                    logger.warning(
+                        "Invalid input_mapping item in calculate rule: %s. Skipping this parameter.",
+                        mapping_item,
+                    )
+                    continue
 
                 val_src_obj = i_rec if source_type == "input_record" else output_target
 
                 raw_value = None
-                if isinstance(val_src_obj, dict): raw_value = val_src_obj.get(source_field)
-                else: raw_value = getattr(val_src_obj, source_field, None)
+                if isinstance(val_src_obj, dict):
+                    raw_value = val_src_obj.get(source_field)
+                else:
+                    raw_value = getattr(val_src_obj, source_field, None)
 
                 if raw_value is None and "default_if_missing" in mapping_item:
                     raw_value = mapping_item["default_if_missing"]
 
                 converted_value = raw_value
                 if data_type == "float":
-                    if raw_value is not None: converted_value = float(str(raw_value)) # Ensure string conversion before float
-                    else: converted_value = None
+                    if raw_value is not None:
+                        converted_value = float(str(raw_value))  # Ensure string conversion before float
+                    else:
+                        converted_value = None
                 elif data_type == "integer":
-                    if raw_value is not None: converted_value = to_integer(raw_value)
-                    else: converted_value = None
+                    if raw_value is not None:
+                        converted_value = to_integer(raw_value)
+                    else:
+                        converted_value = None
                 # Add other data_type conversions as needed
 
                 kwargs[param_name] = converted_value
