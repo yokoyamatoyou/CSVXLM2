@@ -7,9 +7,35 @@ from logging.handlers import RotatingFileHandler
 # from ..config import load_config
 
 DEFAULT_LOGGER_NAME = "csv_to_xml_converter"
-DEFAULT_LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(module)s:%(lineno)d - %(message)s'
+DEFAULT_LOG_FORMAT = (
+    '%(asctime)s - %(name)s - %(levelname)s - %(module)s:%(lineno)d - %(message)s'
+)
 
-def setup_logger(config: dict = None, logger_name: str = DEFAULT_LOGGER_NAME) -> logging.Logger:
+
+def setup_logger(
+    config: dict | None = None,
+    logger_name: str = DEFAULT_LOGGER_NAME,
+    *,
+    force_reconfigure: bool = False,
+) -> logging.Logger:
+    """Create or update a ``logging.Logger`` instance.
+
+    Parameters
+    ----------
+    config : dict, optional
+        Configuration dictionary that may contain a ``"logging"`` section.
+    logger_name : str, optional
+        Name of the logger to retrieve or create.
+    force_reconfigure : bool, optional
+        When ``True`` and the logger already has handlers attached, existing
+        handlers are removed before new ones are added. When ``False`` (the
+        default) the pre-configured logger is returned as-is.
+
+    Returns
+    -------
+    logging.Logger
+        The configured logger instance.
+    """
     logger = logging.getLogger(logger_name)
 
     log_conf = (config or {}).get("logging", {})
@@ -26,9 +52,16 @@ def setup_logger(config: dict = None, logger_name: str = DEFAULT_LOGGER_NAME) ->
     logger.setLevel(log_level)
 
     if logger.hasHandlers():
-        # Assuming already configured, or clear them if re-configuration is desired
-        # for handler in logger.handlers[:]: logger.removeHandler(handler)
-        return logger
+        if force_reconfigure:
+            for handler in logger.handlers[:]:
+                if hasattr(handler, "close"):
+                    try:
+                        handler.close()
+                    except Exception:
+                        pass
+                logger.removeHandler(handler)
+        else:
+            return logger
 
     try:
         log_dir = os.path.dirname(log_file_path)
