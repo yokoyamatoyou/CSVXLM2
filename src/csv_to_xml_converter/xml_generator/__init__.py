@@ -37,7 +37,6 @@ __all__ = [
 ]
 
 # Ensure submodule is exported for package consumers
-xml_parsing_utils
 
 
 # --- Namespaces (Consistent with successful prior states) ---
