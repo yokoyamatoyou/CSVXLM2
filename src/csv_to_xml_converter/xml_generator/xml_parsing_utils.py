@@ -8,6 +8,8 @@ import logging
 from typing import Optional
 from lxml import etree
 
+from ..utils import parse_xml
+
 logger = logging.getLogger(__name__)
 
 # Define common namespaces that might be used in XPath expressions
@@ -34,14 +36,7 @@ CLAIM_AMOUNT_XPATHS = {
 
 def _parse_xml(xml_path: str) -> Optional[etree._ElementTree]:
     """Return an ``ElementTree`` for ``xml_path`` or ``None`` on error."""
-    try:
-        return etree.parse(xml_path)
-    except etree.XMLSyntaxError as exc:
-        logger.error("XMLSyntaxError parsing %s: %s", xml_path, exc)
-        return None
-    except Exception as exc:  # pragma: no cover - unexpected errors
-        logger.error("Unexpected error parsing %s: %s", xml_path, exc)
-        return None
+    return parse_xml(xml_path)
 
 
 def _extract_claim_amount(tree: etree._ElementTree, xpath: str) -> Optional[float]:
@@ -95,27 +90,19 @@ def get_claim_amount(xml_path: str) -> Optional[float]:
     return _extract_claim_amount(tree, xpath)
 
 def get_subject_count_from_cda(xml_path: str) -> int:
-    """
-    Returns the subject count from a CDA XML file.
-    For now, assumes each CDA file represents exactly one subject.
-    Actual parsing might involve checking for a specific element if a CDA could represent multiple.
-    """
-    # To make this robust, one might check for the presence of a root CDA element
-    # or a patient role element, but for now, the spec says "typically 1 per CDA".
-    try:
-        tree = etree.parse(xml_path)
-        # Check for a ClinicalDocument root to ensure it's a CDA
-        # This is a basic validation, not a full CDA conformance check.
-        if tree.xpath("/cda:ClinicalDocument", namespaces=NAMESPACES):
-            return 1
-        logger.warning(f"File {xml_path} does not appear to be a valid CDA XML for subject counting.")
+    """Return the subject count from a CDA XML file."""
+    tree = parse_xml(xml_path)
+    if tree is None:
         return 0
-    except etree.XMLSyntaxError as e:
-        logger.error(f"XMLSyntaxError parsing CDA {xml_path} for subject count: {e}")
-        return 0
-    except Exception as e:
-        logger.error(f"Unexpected error parsing CDA {xml_path} for subject count: {e}")
-        return 0
+
+    if tree.xpath("/cda:ClinicalDocument", namespaces=NAMESPACES):
+        return 1
+
+    logger.warning(
+        "File %s does not appear to be a valid CDA XML for subject counting.",
+        xml_path,
+    )
+    return 0
 
 
 
