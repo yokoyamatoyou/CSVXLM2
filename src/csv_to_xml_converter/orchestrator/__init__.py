@@ -447,6 +447,43 @@ class Orchestrator:
             _gen,
         )
 
+    def _copy_xsds_for_archive(
+        self,
+        xsd_source_paths: List[Path],
+        xsd_dir: Path,
+        coreschema_dir: Path,
+    ) -> None:
+        """Copy XSD files and coreschemas from configured paths into the archive."""
+        for xsd_src_path in xsd_source_paths:
+            logger.info(f"Processing XSD source path for archive: {xsd_src_path}")
+            if xsd_src_path.exists() and xsd_src_path.is_dir():
+                for item in xsd_src_path.iterdir():
+                    if item.is_file() and item.name.lower().endswith(".xsd"):
+                        target_file = xsd_dir / item.name
+                        shutil.copy2(item, target_file)
+                        logger.debug(f"Copied XSD: {item} to {target_file}")
+
+                core_schemas_dir = xsd_src_path / "coreschemas"
+                if core_schemas_dir.exists() and core_schemas_dir.is_dir():
+                    for core_item in core_schemas_dir.iterdir():
+                        if core_item.is_file() and core_item.name.lower().endswith(".xsd"):
+                            target_core_file = coreschema_dir / core_item.name
+                            shutil.copy2(core_item, target_core_file)
+                            logger.debug(
+                                f"Copied core schema XSD: {core_item} to {target_core_file}"
+                            )
+            else:
+                logger.warning(
+                    f"XSD source directory {xsd_src_path} not found or not a directory. Skipping."
+                )
+
+        main_xsds = list(xsd_dir.glob("*.xsd"))
+        core_xsds = list(coreschema_dir.glob("*.xsd"))
+        if not main_xsds and not core_xsds:
+            logger.warning(
+                f"No XSD files or coreschemas were copied to the archive from configured paths: {xsd_source_paths}"
+            )
+
     def create_submission_archive(
         self,
         index_xml_path: str,
@@ -506,35 +543,7 @@ class Orchestrator:
                         logger.warning(f"Claim file {fp} not found.")
 
 
-                for xsd_src_path in xsd_source_paths:
-                    logger.info(f"Processing XSD source path for archive: {xsd_src_path}")
-                    if xsd_src_path.exists() and xsd_src_path.is_dir():
-                        # Copy main XSDs
-                        for item in xsd_src_path.iterdir():
-                            if item.is_file() and item.name.lower().endswith(".xsd"):
-                                target_file = x_dir / item.name
-                                shutil.copy2(item, target_file)
-                                logger.debug(f"Copied XSD: {item} to {target_file}")
-
-                        # Copy coreschemas
-                        core_schemas_dir = xsd_src_path / "coreschemas"
-                        if core_schemas_dir.exists() and core_schemas_dir.is_dir():
-                            for core_item in core_schemas_dir.iterdir():
-                                if core_item.is_file() and core_item.name.lower().endswith(".xsd"):
-                                    target_core_file = xc_dir / core_item.name
-                                    shutil.copy2(core_item, target_core_file)
-                                    logger.debug(f"Copied core schema XSD: {core_item} to {target_core_file}")
-                    else:
-                        logger.warning(
-                            f"XSD source directory {xsd_src_path} not found or not a directory. Skipping."
-                        )
-
-                main_xsds = list(x_dir.glob("*.xsd"))
-                core_xsds = list(xc_dir.glob("*.xsd"))
-                if not main_xsds and not core_xsds:
-                    logger.warning(
-                        f"No XSD files or coreschemas were copied to the archive from configured paths: {xsd_source_paths}"
-                    )
+                self._copy_xsds_for_archive(xsd_source_paths, x_dir, xc_dir)
 
                 final_zip.parent.mkdir(parents=True, exist_ok=True)
                 with zipfile.ZipFile(final_zip, "w", zipfile.ZIP_DEFLATED) as zf:
