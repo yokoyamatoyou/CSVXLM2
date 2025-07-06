@@ -29,25 +29,24 @@ from csv_to_xml_converter.logger import setup_logger
 from csv_to_xml_converter.orchestrator import Orchestrator
 
 DEFAULT_CONFIG_FILE = "config_rules/config.json"
-DEEP_XSD_BASE = (
-    "5521111111_00280081_202405271_1/"
-    "5521111111_00280081_202405271_1/XSD/"
-)
-XSD_OFFICIAL_BASE = DEEP_XSD_BASE
-XSD_GENERAL_BASE = DEEP_XSD_BASE
+DEEP_XSD_BASE = "5521111111_00280081_202405271_1/"
+# Official schemas reside inside the deeper directory under an "XSD" folder
+XSD_OFFICIAL_BASE = os.path.join(DEEP_XSD_BASE, "XSD/")
+# General schemas remain in the top level "XSD" directory
+XSD_GENERAL_BASE = "XSD/"
 
 # Define output paths for aggregated index and summary
 # Changed from ix08_output_V08.xml
 DEFAULT_INDEX_OUTPUT_XML = "data/output_xmls/index.xml"
 # Changed from su08_output_V08.xml
 DEFAULT_SUMMARY_OUTPUT_XML = "data/output_xmls/summary.xml"
-DEFAULT_INDEX_XSD_FILE = XSD_GENERAL_BASE + "ix08_V08.xsd"
-DEFAULT_SUMMARY_XSD_FILE = XSD_GENERAL_BASE + "su08_V08.xsd"
+DEFAULT_INDEX_XSD_FILE = os.path.join(XSD_GENERAL_BASE, "ix08_V08.xsd")
+DEFAULT_SUMMARY_XSD_FILE = os.path.join(XSD_GENERAL_BASE, "su08_V08.xsd")
 
 # Paths for individual document generation (CDAs, Settlements)
 DEFAULT_CDA_FULL_INPUT_CSV = "data/input_csvs/sample_health_checkup_full.csv"
 DEFAULT_CDA_FULL_RULES_FILE = "config_rules/health_checkup_full_rules.json"
-DEFAULT_CDA_FULL_XSD_FILE = XSD_OFFICIAL_BASE + "hc08_V08.xsd"
+DEFAULT_CDA_FULL_XSD_FILE = os.path.join(XSD_OFFICIAL_BASE, "hc08_V08.xsd")
 DEFAULT_CDA_FULL_OUTPUT_DIR = "data/output_xmls/cda_checkup_full/"
 DEFAULT_CDA_FULL_FILE_PREFIX = "hc_cda_"
 
@@ -55,26 +54,26 @@ DEFAULT_HG_CDA_FULL_INPUT_CSV = (
     "data/input_csvs/sample_health_guidance_full.csv"
 )
 DEFAULT_HG_CDA_FULL_RULES_FILE = "config_rules/health_guidance_full_rules.json"
-DEFAULT_HG_CDA_XSD_FILE = XSD_GENERAL_BASE + "hg08_V08.xsd"
+DEFAULT_HG_CDA_XSD_FILE = os.path.join(XSD_GENERAL_BASE, "hg08_V08.xsd")
 DEFAULT_HG_CDA_FULL_OUTPUT_DIR = "data/output_xmls/cda_guidance_full/"
 DEFAULT_HG_CDA_FILE_PREFIX = "hg_cda_"
 
 DEFAULT_CS_INPUT_CSV = "data/input_csvs/sample_checkup_settlement.csv"
 DEFAULT_CS_RULES_FILE = "config_rules/checkup_settlement_rules.json"
-DEFAULT_CS_XSD_FILE = XSD_GENERAL_BASE + "cc08_V08.xsd"
+DEFAULT_CS_XSD_FILE = os.path.join(XSD_GENERAL_BASE, "cc08_V08.xsd")
 DEFAULT_CS_OUTPUT_DIR = "data/output_xmls/settlements_checkup/"
 DEFAULT_CS_FILE_PREFIX = "cs_"
 
 DEFAULT_GS_INPUT_CSV = "data/input_csvs/sample_guidance_settlement.csv"
 DEFAULT_GS_RULES_FILE = "config_rules/guidance_settlement_rules.json"
-DEFAULT_GS_XSD_FILE = XSD_GENERAL_BASE + "gc08_V08.xsd"
+DEFAULT_GS_XSD_FILE = os.path.join(XSD_GENERAL_BASE, "gc08_V08.xsd")
 DEFAULT_GS_OUTPUT_DIR = "data/output_xmls/settlements_guidance/"
 DEFAULT_GS_FILE_PREFIX = "gs_"
 # Paths for Grouped Checkup CDA Test
 DEFAULT_GROUPED_CHECKUP_CSV = "data/input_csvs/sample_grouped_checkup.csv"
 DEFAULT_GROUPED_CHECKUP_RULES_FILE = "config_rules/grouped_checkup_rules.json"
 # Uses the same health checkup XSD as individual CDA generation
-DEFAULT_GROUPED_CHECKUP_XSD_FILE = XSD_OFFICIAL_BASE + "hc08_V08.xsd"
+DEFAULT_GROUPED_CHECKUP_XSD_FILE = os.path.join(XSD_OFFICIAL_BASE, "hc08_V08.xsd")
 DEFAULT_GROUPED_CHECKUP_OUTPUT_DIR = "data/output_xmls/cda_checkup_grouped/"
 DEFAULT_GROUPED_CHECKUP_FILE_PREFIX = "hc_grp_cda_"
 DEFAULT_ARCHIVE_OUTPUT_DIR = "data/output_archives/"
