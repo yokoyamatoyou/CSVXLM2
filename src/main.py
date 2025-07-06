@@ -29,8 +29,6 @@ from csv_to_xml_converter.logger import setup_logger
 from csv_to_xml_converter.orchestrator import Orchestrator
 
 DEFAULT_CONFIG_FILE = "config_rules/config.json"
-# DUMMY_XSD_BASE_PATH = "data/xsd_schemas_official/" # Commented out/Removed
-# XSD_BASE_TO_USE = DUMMY_XSD_BASE_PATH # Commented out/Removed
 DEEP_XSD_BASE = (
     "5521111111_00280081_202405271_1/"
     "5521111111_00280081_202405271_1/XSD/"
