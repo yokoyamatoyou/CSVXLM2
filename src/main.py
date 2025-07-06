@@ -116,6 +116,11 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
             "Used to parse the input CSV files."
         ),
     )
+    parser.add_argument(
+        "--log-level",
+        choices=["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"],
+        help="Override logging level from the configuration file.",
+    )
     return parser.parse_args(args)
 
 
@@ -131,6 +136,8 @@ def main(cli_args=None):
     except Exception as e:
         logging.error("Error loading config: %s", e)
         app_config = {"logging": {}}
+    if cli.log_level:
+        app_config.setdefault("logging", {})["log_level"] = cli.log_level
     app_config["_config_file_path_"] = config_path
     main_logger = setup_logger(config=app_config)
     main_logger.info("Application starting - Grouped CDA Test Run...")

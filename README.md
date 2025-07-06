@@ -89,10 +89,11 @@ The application is configured to look for XSDs in these specific locations. The 
     Use the interface to select the configuration JSON and specify the CSV profile.
 3.  Alternatively, run the CLI directly:
     ```bash
-    python src/main.py [-c CONFIG] [-p PROFILE]
+    python src/main.py [-c CONFIG] [-p PROFILE] [--log-level LEVEL]
     ```
     * `CONFIG` – path to a configuration JSON file (defaults to `config_rules/config.json`)
     * `PROFILE` – name of the CSV profile defined in that config (defaults to `grouped_checkup_profile`)
+    * `LEVEL` – optional logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL`) to override the configuration
 4.  Output XMLs will be generated in `data/output_xmls/` and ZIP archives in `data/output_archives/`.
 5.  Logs are written to the console and/or `logs/app.log` as specified in
     `config_rules/config.json`. Set `logging.console` or `logging.file` to `true`
