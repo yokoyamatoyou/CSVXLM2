@@ -33,6 +33,7 @@ __all__ = [
     "get_claim_amount_from_gc08",
     "get_claim_amount",
     "get_subject_count_from_cda",
+    "xml_parsing_utils",
 ]
 
 # Ensure submodule is exported for package consumers
