@@ -229,6 +229,15 @@ def parse_csv_from_profile(profile: Dict[str, Any]) -> List[Dict[str, str]]:
     profile_column_names = profile.get("column_names")
     required_columns_profile = profile.get("required_columns")
 
+    common_args = dict(
+        delimiter=profile.get("delimiter", ","),
+        encoding=profile.get("encoding", "utf-8"),
+        skip_comments=profile.get("skip_comments", True),
+        quotechar=profile.get("quotechar", '"'),
+        escapechar=profile.get("escapechar"),
+        doublequote=profile.get("doublequote", True),
+    )
+
     if not has_header:
         if not profile_column_names:
             msg = (
@@ -252,31 +261,17 @@ def parse_csv_from_profile(profile: Dict[str, Any]) -> List[Dict[str, str]]:
                 )
                 logger.error(msg)
                 raise CSVParsingError(msg)
-        # Headerless CSVs are supported by passing profile_column_names as
-        # header_override and skipping further column validation here.
+
         return parse_csv(
             source=source,
-            delimiter=profile.get("delimiter", ","),
-            encoding=profile.get("encoding", "utf-8"),
-            # Already checked against profile_column_names
-            required_columns=None,
-            skip_comments=profile.get("skip_comments", True),
+            required_columns=None,  # checked above
             header_override=profile_column_names,
-            quotechar=profile.get("quotechar", '"'),
-            escapechar=profile.get("escapechar"),
-            doublequote=profile.get("doublequote", True),
+            **common_args,
         )
-    else:  # has_header is True
-        # parse_csv will detect header from source and
-        # check required_columns_profile against it.
-        return parse_csv(
-            source=source,
-            delimiter=profile.get("delimiter", ","),
-            encoding=profile.get("encoding", "utf-8"),
-            required_columns=required_columns_profile,
-            skip_comments=profile.get("skip_comments", True),
-            quotechar=profile.get("quotechar", '"'),
-            escapechar=profile.get("escapechar"),
-            doublequote=profile.get("doublequote", True)
-            # header_override is None by default
-        )
+
+    # has_header is True
+    return parse_csv(
+        source=source,
+        required_columns=required_columns_profile,
+        **common_args,
+    )
