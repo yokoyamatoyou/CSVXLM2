@@ -291,6 +291,9 @@ class Orchestrator:
         successful_files: List[str] = []
         parsed_data_rows_count = 0
 
+        # Determine a short prefix up-front so it is available for error logging
+        short_prefix = output_file_prefix.split("_")[0]
+
         try:
             parsed_data_rows = self._load_csv_records(csv_file_path, csv_profile_name)
             parsed_data_rows_count = len(parsed_data_rows)
@@ -303,8 +306,6 @@ class Orchestrator:
             logger.info(
                 f"Loaded {len(rules)} rules for {model_class.__name__} from: {rules_file_path}"
             )
-
-            short_prefix = output_file_prefix.split("_")[0]
 
             for i, record_data in enumerate(parsed_data_rows):
                 row_doc_id = record_data.get("doc_id", f"unk_{short_prefix}_doc_{i+1}")
