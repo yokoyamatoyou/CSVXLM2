@@ -1,3 +1,9 @@
+"""Tkinter-based GUI for invoking the CLI converter.
+
+This module defines a simple graphical interface around the command-line
+utilities so users can run conversions without typing commands.
+"""
+
 import tkinter as tk
 from tkinter import filedialog, messagebox
 
