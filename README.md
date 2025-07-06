@@ -166,7 +166,7 @@ sets used for these validations.  The schemas are located in the following
 directories:
 
 * `XSD/` – Top-level directory containing the main XSD files and `coreschemas/`.
-* `5521111111_00280081_202405271_1/5521111111_00280081_202405271_1/XSD/` –
+* `5521111111_00280081_202405271_1/XSD/` –
   Example package layout with bundled XSDs that mirrors the final ZIP structure.
 
 During XML generation the program loads the corresponding schema from these
