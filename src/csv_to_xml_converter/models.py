@@ -1,7 +1,7 @@
 # src/csv_to_xml_converter/models.py
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass, field
-import json # Added for testing to_xml_dict outputs
+
 
 @dataclass
 class IntermediateRecord:
@@ -16,8 +16,10 @@ class II_Element: # Helper for Instance Identifier (II)
 
     def to_xml_dict(self) -> Dict[str, Any]:
         data = {}
-        if self.root is not None: data["root"] = self.root
-        if self.extension is not None: data["extension"] = self.extension
+        if self.root is not None:
+            data["root"] = self.root
+        if self.extension is not None:
+            data["extension"] = self.extension
         return data
 
 @dataclass
@@ -29,10 +31,14 @@ class CD_Element: # Helper for Coded Value (CD)
 
     def to_xml_dict(self) -> Dict[str, Any]:
         data = {}
-        if self.code is not None: data["code"] = self.code
-        if self.code_system is not None: data["code_system"] = self.code_system
-        if self.code_system_name is not None: data["code_system_name"] = self.code_system_name
-        if self.display_name is not None: data["display_name"] = self.display_name
+        if self.code is not None:
+            data["code"] = self.code
+        if self.code_system is not None:
+            data["code_system"] = self.code_system
+        if self.code_system_name is not None:
+            data["code_system_name"] = self.code_system_name
+        if self.display_name is not None:
+            data["display_name"] = self.display_name
         return data
 
 @dataclass
@@ -42,8 +48,10 @@ class MO_Element_Data: # Helper for Monetary (MO) elements with currency
 
     def to_xml_dict(self) -> Dict[str, Any]:
         data = {}
-        if self.value is not None: data["value"] = self.value
-        if self.currency is not None: data["currency"] = self.currency
+        if self.value is not None:
+            data["value"] = self.value
+        if self.currency is not None:
+            data["currency"] = self.currency
         return data
 
 @dataclass
