@@ -3,17 +3,24 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
+from os import PathLike
+from typing import Optional, Union
 
 from lxml import etree
 
 logger = logging.getLogger(__name__)
 
 
-def parse_xml(path: str) -> Optional[etree._ElementTree]:
-    """Return an ``ElementTree`` for ``path`` or ``None`` on error."""
+def parse_xml(path: Union[str, PathLike[str]]) -> Optional[etree._ElementTree]:
+    """Return an ``ElementTree`` for ``path`` or ``None`` on error.
+
+    Parameters
+    ----------
+    path:
+        Path to an XML file. Accepts :class:`str` or :class:`os.PathLike`.
+    """
     try:
-        return etree.parse(path)
+        return etree.parse(str(path))
     except etree.XMLSyntaxError as exc:
         logger.error("XMLSyntaxError parsing %s: %s", path, exc)
     except OSError as exc:
