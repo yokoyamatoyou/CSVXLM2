@@ -5,6 +5,7 @@ from csv_to_xml_converter.xml_generator.xml_parsing_utils import (
     get_claim_amount,
     get_subject_count_from_cda,
 )
+from csv_to_xml_converter.utils import parse_xml
 
 
 def test_xml_parsing_utils(tmp_path):
@@ -37,3 +38,8 @@ def test_xml_parsing_utils(tmp_path):
     assert get_claim_amount(str(cda_path)) is None
     assert get_subject_count_from_cda(str(cda_path)) == 1
     assert get_subject_count_from_cda(str(cc08_path)) == 0
+
+    # verify parse_xml helper returns None on malformed XML
+    bad_xml = tmp_path / "bad.xml"
+    bad_xml.write_text("<bad>", encoding="utf-8")
+    assert parse_xml(str(bad_xml)) is None
