@@ -9,7 +9,9 @@ import os  # Make sure os is imported
 import logging
 
 logger = logging.getLogger(__name__)
-logger.info(f"xml_generator/__init__.py loaded from: {os.path.abspath(__file__)}")
+logger.debug(
+    f"xml_generator/__init__.py loaded from: {os.path.abspath(__file__)}"
+)
 
 # Import the new parsing utilities so they are accessible via the package
 from . import xml_parsing_utils
