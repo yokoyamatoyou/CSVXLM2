@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-"""
-XML Parsing Utilities to extract specific data from generated XML files.
-"""
+"""Utility helpers for extracting values from generated XML files."""
+
 from __future__ import annotations
 
 import logging
@@ -33,12 +32,6 @@ CLAIM_AMOUNT_XPATHS = {
         "/gc:GuidanceClaimDocument/gc:settlementDetails/gc:claimAmount/@value",
 }
 
-
-def _parse_xml(xml_path: str) -> Optional[etree._ElementTree]:
-    """Return an ``ElementTree`` for ``xml_path`` or ``None`` on error."""
-    return parse_xml(xml_path)
-
-
 def _extract_claim_amount(tree: etree._ElementTree, xpath: str) -> Optional[float]:
     """Return the claim amount using ``xpath`` on a parsed tree."""
     try:
@@ -54,7 +47,7 @@ def _extract_claim_amount(tree: etree._ElementTree, xpath: str) -> Optional[floa
 
 def _get_claim_amount_by_xpath(xml_path: str, xpath: str) -> Optional[float]:
     """Return the claim amount for ``xml_path`` using ``xpath``."""
-    tree = _parse_xml(xml_path)
+    tree = parse_xml(xml_path)
     if tree is None:
         return None
     return _extract_claim_amount(tree, xpath)
@@ -77,7 +70,7 @@ def get_claim_amount_from_gc08(xml_path: str) -> Optional[float]:
 
 def get_claim_amount(xml_path: str) -> Optional[float]:
     """Return the claim amount from either a CC08 or GC08 XML file."""
-    tree = _parse_xml(xml_path)
+    tree = parse_xml(xml_path)
     if tree is None:
         return None
 
