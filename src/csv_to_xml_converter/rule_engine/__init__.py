@@ -9,6 +9,17 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__) # Moved logger definition up
 
+__all__ = [
+    "load_rules",
+    "apply_rules",
+    "RuleApplicationError",
+    "to_integer",
+    "to_date_yyyymmdd",
+    "to_boolean",
+    "round_number",
+    "calculate_bmi",
+]
+
 def _set_nested_attr(target_obj: Any, attr_path: str, value: Any):
     logger.debug(f"Setting nested attr: path='{attr_path}', value='{value}' on obj of type {type(target_obj)}")
     parts = attr_path.split('.')
