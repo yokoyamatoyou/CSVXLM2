@@ -123,6 +123,10 @@ class Orchestrator:
             return etree.tostring(xml_obj, pretty_print=True, xml_declaration=True, encoding="utf-8").decode("utf-8")
         return str(xml_obj)
 
+    def _validate_xml(self, xml_string: str, xsd_file_path: str) -> tuple[bool, List[str]]:
+        """Return validation result and error list for ``xml_string``."""
+        return validate_xml(xml_string, xsd_file_path)
+
     def _validate_and_write_xml(
         self,
         xml_string: str,
@@ -132,7 +136,7 @@ class Orchestrator:
         invalid_out_path: Optional[Path] = None,
     ) -> bool:
         """Validate ``xml_string`` and write to ``out_path`` when valid."""
-        is_valid, errors = validate_xml(xml_string, xsd_file_path)
+        is_valid, errors = self._validate_xml(xml_string, xsd_file_path)
         if not is_valid:
             logger.error("%s for %s FAILED validation: %s", log_prefix, out_path.stem, errors)
             if invalid_out_path:
@@ -185,7 +189,7 @@ class Orchestrator:
                 return False
 
             xml_string = generate_index_xml(transformed_obj)
-            is_valid, errors = validate_xml(xml_string, xsd_file_path)
+            is_valid, errors = self._validate_xml(xml_string, xsd_file_path)
             if not is_valid:
                 logger.error(f"Aggregated index.xml FAILED validation: {errors}")
                 # Optionally save the invalid XML for debugging
@@ -253,7 +257,7 @@ class Orchestrator:
                 transformed_obj.totalClaimAmountValue = aggregation_input["total_claim"]
 
             xml_string = generate_summary_xml(transformed_obj)
-            is_valid, errors = validate_xml(xml_string, xsd_file_path)
+            is_valid, errors = self._validate_xml(xml_string, xsd_file_path)
             if not is_valid:
                 logger.error(f"Aggregated summary.xml FAILED validation: {errors}")
                 # with open(Path(output_xml_path).with_suffix(".invalid.xml"), "w", encoding="utf-8") as f_err: f_err.write(xml_string)
@@ -626,7 +630,7 @@ class Orchestrator:
                 f"Validating {target.file_type}: {target.path.name} against {xsd_path.name}"
             )
             xml_content = target.path.read_text(encoding="utf-8")
-            is_valid, errors = validate_xml(xml_content, str(xsd_path))
+            is_valid, errors = self._validate_xml(xml_content, str(xsd_path))
             if is_valid:
                 logger.info(
                     f"OK: {target.file_type} '{target.path.name}' is valid against '{xsd_path.name}'."
