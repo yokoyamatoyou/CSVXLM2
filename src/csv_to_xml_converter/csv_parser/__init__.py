@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import logging
 import os
+import codecs
 from typing import Dict, List, Any, Optional
 import csv
 import io
@@ -152,7 +153,19 @@ def parse_csv(
     try:
         if is_file_path:
             logger.debug("Reading CSV from file path: %s", source)
-            with open(source, "r", encoding=encoding, newline="") as file_obj:
+            encoding_for_open = encoding
+            try:
+                with open(source, "rb") as bom_check:
+                    start_bytes = bom_check.read(4)
+                if start_bytes.startswith(codecs.BOM_UTF8):
+                    encoding_for_open = "utf-8-sig"
+                    logger.debug(
+                        "Detected UTF-8 BOM. Using 'utf-8-sig' to decode %s",
+                        source,
+                    )
+            except Exception as e:
+                logger.debug("BOM detection failed for %s: %s", source, e)
+            with open(source, "r", encoding=encoding_for_open, newline="") as file_obj:
                 return _parse_csv_stream(
                     file_obj,
                     delimiter,
@@ -164,7 +177,8 @@ def parse_csv(
                     doublequote,
                 )
         logger.debug("Parsing CSV from provided string content.")
-        with io.StringIO(source) as file_obj:
+        source_str = source.lstrip("\ufeff")
+        with io.StringIO(source_str) as file_obj:
             return _parse_csv_stream(
                 file_obj,
                 delimiter,
