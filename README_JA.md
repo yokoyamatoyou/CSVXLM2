@@ -40,8 +40,10 @@ python src/main.py [-c CONFIG] [-p PROFILE] [--log-level LEVEL]
 - `CONFIG` : 設定JSONへのパス (デフォルト: `config_rules/config.json`)
 - `PROFILE` : CSVプロファイル名 (デフォルト: `grouped_checkup_profile`)
 - `LEVEL` : ログレベル (`DEBUG`, `INFO` など)
+- `--sample-test` : テスト用フォルダから各1件のみ処理して動作確認を行います
 
 出力XMLは`data/output_xmls/`、ZIPアーカイブは`data/output_archives/`に生成されます。
+テスト用データは `3610123279`, `3610123675`, `3610123808`, `40歳未満健診CSV` の各フォルダにあります。 `--sample-test` オプションを指定すると、これらのフォルダから1ファイルずつのみ処理し、動作を確認できます。大量データ全体を変換せず軽量にテストできるため推奨です。
 
 ## テスト実行
 

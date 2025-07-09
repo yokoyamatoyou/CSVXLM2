@@ -121,6 +121,11 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         choices=["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"],
         help="Override logging level from the configuration file.",
     )
+    parser.add_argument(
+        "--sample-test",
+        action="store_true",
+        help="Run sample data conversion test using bundled folders.",
+    )
     return parser.parse_args(args)
 
 
@@ -154,6 +159,18 @@ def main(cli_args=None):
     for d_str in output_dirs:
         Path(d_str).mkdir(parents=True, exist_ok=True)
     orchestrator = Orchestrator(app_config)
+
+    if cli.sample_test:
+        from sample_test_mode import convert_first_csvs
+
+        test_dirs = [
+            "3610123279",
+            "3610123675",
+            "3610123808",
+            "40歳未満健診CSV",
+        ]
+        out_dir = app_config.get("paths", {}).get("output_xmls", "data/output_xmls")
+        convert_first_csvs(test_dirs, os.path.join(out_dir, "sample_test"))
 
     # Initialize lists for collecting generated XML file paths
     all_data_xml_files = []
