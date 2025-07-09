@@ -137,3 +137,9 @@ def test_csv_parser(tmp_path):
     csv_content_mismatch = "header1,header2\ndata1\ndata1,data2,data3"
     records10 = parse_csv(csv_content_mismatch)
     assert len(records10) == 0
+
+    # UTF-8 BOM file should decode correctly even with wrong encoding specified
+    bom_csv = tmp_path / "bom.csv"
+    bom_csv.write_text("name,age\nAmy,22", encoding="utf-8-sig")
+    records_bom = parse_csv(str(bom_csv), encoding="shift_jis")
+    assert records_bom[0] == {"name": "Amy", "age": "22"}
