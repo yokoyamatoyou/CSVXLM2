@@ -16,8 +16,10 @@ def _csv_to_xml(records: List[dict]) -> str:
     return etree.tostring(root, pretty_print=True, xml_declaration=True, encoding="utf-8").decode("utf-8")
 
 
-def convert_first_csvs(directories: Iterable[str], output_dir: str) -> List[str]:
-    """Convert the first CSV file from each directory into a simple XML file.
+def convert_first_csvs(
+    directories: Iterable[str], output_dir: str, num_files: int = 1
+) -> List[str]:
+    """Convert the first ``num_files`` CSV files from each directory into XML.
 
     Parameters
     ----------
@@ -38,15 +40,15 @@ def convert_first_csvs(directories: Iterable[str], output_dir: str) -> List[str]
         dir_path = Path(d)
         if not dir_path.is_dir():
             continue
-        first_csv = next(iter(sorted(dir_path.glob("*.csv"))), None)
-        if first_csv is None:
-            continue
-        try:
-            records = parse_csv(str(first_csv), encoding="shift_jis")
-        except Exception:
-            records = []
-        xml_str = _csv_to_xml(records)
-        xml_file = out_path / f"{dir_path.name}.xml"
-        xml_file.write_text(xml_str, encoding="utf-8")
-        output_paths.append(str(xml_file))
+        csv_files = sorted(dir_path.glob("*.csv"))[:num_files]
+        for idx, csv_path in enumerate(csv_files, start=1):
+            try:
+                records = parse_csv(str(csv_path), encoding="shift_jis")
+            except Exception:
+                records = []
+            xml_str = _csv_to_xml(records)
+            suffix = f"_{idx}" if num_files > 1 else ""
+            xml_file = out_path / f"{dir_path.name}{suffix}.xml"
+            xml_file.write_text(xml_str, encoding="utf-8")
+            output_paths.append(str(xml_file))
     return output_paths

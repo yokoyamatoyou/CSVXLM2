@@ -170,7 +170,7 @@ def main(cli_args=None):
             "40歳未満健診CSV",
         ]
         out_dir = app_config.get("paths", {}).get("output_xmls", "data/output_xmls")
-        convert_first_csvs(test_dirs, os.path.join(out_dir, "sample_test"))
+        convert_first_csvs(test_dirs, os.path.join(out_dir, "sample_test"), num_files=2)
 
     # Initialize lists for collecting generated XML file paths
     all_data_xml_files = []
