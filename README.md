@@ -47,17 +47,23 @@ original Shift_JIS file `CSVからXML変換詳細手順説明.txt`.
 
 ## Environment Setup
 
-The project targets **Python 3.10+**.  Install the required
-dependencies with:
+The project targets **Python 3.10+**.
+
+## Installation
+
+Install the project and its dependencies with:
+
+```bash
+pip install .
+```
+
+This installs the `lxml` library and registers the ``csvxlm`` command
+line entry point.  If you prefer, you can still install the
+dependencies directly using:
 
 ```bash
 pip install -r requirements.txt
 ```
-
-This installs the `lxml` library which is required for XML generation
-and validation. The CLI uses Python's built-in `argparse` so no
-additional packages are required. If you are running Python 3.6, also
-install the `dataclasses` backport.
 
 ## XSD File Setup (Crucial for Operation)
 
