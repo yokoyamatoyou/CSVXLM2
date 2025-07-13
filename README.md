@@ -97,6 +97,10 @@ The application is configured to look for XSDs in these specific locations. The 
     ```bash
     python src/main.py [-c CONFIG] [-p PROFILE] [--log-level LEVEL]
     ```
+    Or using the module form:
+    ```bash
+    python -m csv_to_xml_converter [-c CONFIG] [-p PROFILE] [--log-level LEVEL]
+    ```
     * `CONFIG` – path to a configuration JSON file (defaults to `config_rules/config.json`)
     * `PROFILE` – name of the CSV profile defined in that config (defaults to `grouped_checkup_profile`)
     * `LEVEL` – optional logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL`) to override the configuration
