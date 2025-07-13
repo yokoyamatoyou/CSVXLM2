@@ -36,6 +36,10 @@ python src/gui.py
 ```bash
 python src/main.py [-c CONFIG] [-p PROFILE] [--log-level LEVEL]
 ```
+モジュール形式で実行する場合:
+```bash
+python -m csv_to_xml_converter [-c CONFIG] [-p PROFILE] [--log-level LEVEL]
+```
 
 - `CONFIG` : 設定JSONへのパス (デフォルト: `config_rules/config.json`)
 - `PROFILE` : CSVプロファイル名 (デフォルト: `grouped_checkup_profile`)
