@@ -1,6 +1,7 @@
 import os
+import pytest
 from lxml import etree
-from csv_to_xml_converter.validator import validate_xml
+from csv_to_xml_converter.validator import validate_xml, XMLValidationError
 from csv_to_xml_converter.xml_generator import (
     MHLW_NS_URL as XML_GEN_MHLW_NS_URL,
     XSI_NS as XML_GEN_XSI_NS,
@@ -41,3 +42,11 @@ def test_validate_xml(tmp_path):
     invalid_struct_xml = etree.tostring(root, xml_declaration=True, encoding="utf-8").decode("utf-8")
     is_valid, errors = validate_xml(invalid_struct_xml, xsd_path)
     assert not is_valid
+
+
+def test_validate_xml_missing_xsd(tmp_path):
+    """validate_xml should raise XMLValidationError when XSD is absent."""
+    xml = "<root/>"
+    missing_xsd = tmp_path / "missing.xsd"
+    with pytest.raises(XMLValidationError):
+        validate_xml(xml, str(missing_xsd))

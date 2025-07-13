@@ -143,3 +143,9 @@ def test_csv_parser(tmp_path):
     bom_csv.write_text("name,age\nAmy,22", encoding="utf-8-sig")
     records_bom = parse_csv(str(bom_csv), encoding="shift_jis")
     assert records_bom[0] == {"name": "Amy", "age": "22"}
+
+
+def test_parse_csv_from_profile_file_not_found():
+    profile = {"source": "does_not_exist.csv"}
+    with pytest.raises(FileNotFoundError):
+        parse_csv_from_profile(profile)

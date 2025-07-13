@@ -23,9 +23,9 @@ def validate_xml(
     xml_string: str, xsd_file_path: str
 ) -> Tuple[bool, List[str]]:
     error_messages = []
+    if not os.path.exists(xsd_file_path):
+        raise XMLValidationError(f"XSD file not found: {xsd_file_path}")
     try:
-        if not os.path.exists(xsd_file_path):
-            raise XMLValidationError(f"XSD file not found: {xsd_file_path}")
         xsd_doc = etree.parse(xsd_file_path)
         xmlschema = etree.XMLSchema(xsd_doc)
         xml_doc_tree = etree.fromstring(xml_string.encode("utf-8"))
