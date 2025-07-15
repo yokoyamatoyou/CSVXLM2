@@ -149,3 +149,23 @@ def test_parse_csv_from_profile_file_not_found():
     profile = {"source": "does_not_exist.csv"}
     with pytest.raises(FileNotFoundError):
         parse_csv_from_profile(profile)
+
+
+def test_header_mapping(tmp_path):
+    csv_path = tmp_path / "hm.csv"
+    csv_path.write_text("Name,Age\nBob,20", encoding="utf-8")
+    profile = {"source": str(csv_path)}
+    mapping = {"Name": "name", "Age": "age"}
+    records = parse_csv_from_profile(profile, header_mapping=mapping)
+    assert records == [{"name": "Bob", "age": "20"}]
+
+    csv_no_header = tmp_path / "hm_no_header.csv"
+    csv_no_header.write_text("1,2", encoding="utf-8")
+    profile_no_header = {
+        "source": str(csv_no_header),
+        "has_header": False,
+        "column_names": ["ColA", "ColB"],
+    }
+    mapping2 = {"ColA": "a", "ColB": "b"}
+    recs = parse_csv_from_profile(profile_no_header, header_mapping=mapping2)
+    assert recs[0] == {"a": "1", "b": "2"}
