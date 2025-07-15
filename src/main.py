@@ -126,6 +126,18 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Run sample data conversion test using bundled folders.",
     )
+    parser.add_argument(
+        "--sample-num-files",
+        type=int,
+        default=2,
+        metavar="N",
+        help="Number of CSV files to convert from each folder when using --sample-test.",
+    )
+    parser.add_argument(
+        "--sample-only",
+        action="store_true",
+        help="When used with --sample-test, skip the normal conversion workflow.",
+    )
     return parser.parse_args(args)
 
 
@@ -170,7 +182,14 @@ def main(cli_args=None):
             "40歳未満健診CSV",
         ]
         out_dir = app_config.get("paths", {}).get("output_xmls", "data/output_xmls")
-        convert_first_csvs(test_dirs, os.path.join(out_dir, "sample_test"), num_files=2)
+        convert_first_csvs(
+            test_dirs,
+            os.path.join(out_dir, "sample_test"),
+            num_files=cli.sample_num_files,
+        )
+        if cli.sample_only:
+            main_logger.info("Sample test complete; exiting as --sample-only was provided.")
+            return
 
     # Initialize lists for collecting generated XML file paths
     all_data_xml_files = []

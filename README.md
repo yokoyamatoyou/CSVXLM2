@@ -104,16 +104,16 @@ The application is configured to look for XSDs in these specific locations. The 
     * `CONFIG` – path to a configuration JSON file (defaults to `config_rules/config.json`)
     * `PROFILE` – name of the CSV profile defined in that config (defaults to `grouped_checkup_profile`)
     * `LEVEL` – optional logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL`) to override the configuration
-    * `--sample-test` – process two CSV files from each test data folder to ensure the pipeline works without converting the entire datasets
+    * `--sample-test` – process CSV files from the bundled test data folders. Use `--sample-num-files` to control how many files are processed from each folder (default is 2). Combine with `--sample-only` to run only this lightweight test.
 4.  Output XMLs will be generated in `data/output_xmls/` and ZIP archives in `data/output_archives/`.
 5.  Logs are written to the console and/or `logs/app.log` as specified in
     `config_rules/config.json`. Set `logging.console` or `logging.file` to `true`
     or `false` to control the destinations.
 6.  Sample test data is located in the following folders:
     `3610123279`, `3610123675`, `3610123808`, and `40歳未満健診CSV`. Running
-    `python src/main.py --sample-test` converts the first two CSV files from each of these
-    directories to XML. This keeps the tests lightweight and avoids processing
-    the full datasets.
+    `python src/main.py --sample-test --sample-num-files 1` converts the first CSV file from each of these
+    directories to XML. Adjust the number with `--sample-num-files` as needed. This keeps the tests lightweight
+    and avoids processing the full datasets.
 
 ## Running Tests
 
