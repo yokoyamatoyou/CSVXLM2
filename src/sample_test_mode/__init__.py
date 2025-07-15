@@ -2,8 +2,19 @@
 from pathlib import Path
 from typing import Iterable, List
 from lxml import etree
+import re
 
 from csv_to_xml_converter.csv_parser import parse_csv
+
+
+def _sanitize_tag(tag: str) -> str:
+    """Return a tag name safe for XML creation."""
+    # Replace characters invalid in XML tag names with underscores
+    sanitized = re.sub(r"[^a-zA-Z0-9_.-]", "_", tag)
+    # Tag names cannot start with digits or punctuation
+    if not sanitized or not sanitized[0].isalpha() and sanitized[0] not in "_":
+        sanitized = f"_{sanitized}"
+    return sanitized
 
 
 def _csv_to_xml(records: List[dict]) -> str:
@@ -11,7 +22,8 @@ def _csv_to_xml(records: List[dict]) -> str:
     for rec in records:
         r_el = etree.SubElement(root, "record")
         for k, v in rec.items():
-            child = etree.SubElement(r_el, k)
+            safe_tag = _sanitize_tag(k)
+            child = etree.SubElement(r_el, safe_tag)
             child.text = v
     return etree.tostring(root, pretty_print=True, xml_declaration=True, encoding="utf-8").decode("utf-8")
 
