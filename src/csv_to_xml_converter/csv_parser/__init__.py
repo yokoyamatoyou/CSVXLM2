@@ -47,8 +47,13 @@ def _parse_csv_stream(
     quotechar: str,
     escapechar: Optional[str],
     doublequote: bool,
+    header_mapping: Optional[Dict[str, str]] = None,
 ) -> List[Dict[str, str]]:
-    """Internal helper to parse an opened CSV file object."""
+    """Internal helper to parse an opened CSV file object.
+
+    If ``header_mapping`` is supplied, header names are renamed according to this
+    mapping before any required column validation occurs.
+    """
     reader = csv.reader(
         file_obj,
         delimiter=delimiter,
@@ -63,6 +68,8 @@ def _parse_csv_stream(
 
     if header_override is not None:
         header_cols = [col.strip() for col in header_override]
+        if header_mapping:
+            header_cols = [header_mapping.get(h, h) for h in header_cols]
         _validate_required_columns(header_cols, required_columns)
         logger.info("Using provided header_override: %s", header_override)
 
@@ -75,6 +82,8 @@ def _parse_csv_stream(
             continue
         if header_cols is None:
             header_cols = [cell.strip() for cell in row]
+            if header_mapping:
+                header_cols = [header_mapping.get(h, h) for h in header_cols]
             logger.info("Header found on line %d: %s", line_num, header_cols)
             _validate_required_columns(header_cols, required_columns)
             continue
@@ -113,6 +122,7 @@ def parse_csv(
     quotechar: str = '"',
     escapechar: Optional[str] = None,
     doublequote: bool = True,
+    header_mapping: Optional[Dict[str, str]] = None,
 ) -> List[Dict[str, str]]:
     """Parses a CSV from a file path or from string content.
 
@@ -130,6 +140,7 @@ def parse_csv(
         quotechar: Character used to quote fields.
         escapechar: Character used to escape the delimiter.
         doublequote: Whether two consecutive quotechars represent one.
+        header_mapping: Optional mapping to rename header fields.
 
     Returns:
         A list of dictionaries representing rows in the CSV. If no header is
@@ -175,6 +186,7 @@ def parse_csv(
                     quotechar,
                     escapechar,
                     doublequote,
+                    header_mapping,
                 )
         logger.debug("Parsing CSV from provided string content.")
         source_str = source.lstrip("\ufeff")
@@ -188,6 +200,7 @@ def parse_csv(
                 quotechar,
                 escapechar,
                 doublequote,
+                header_mapping,
             )
     except UnicodeDecodeError as e:
         logger.error(
@@ -202,7 +215,10 @@ def parse_csv(
         raise CSVParsingError(f"Error reading CSV {source}: {e}") from e
 
 
-def parse_csv_from_profile(profile: Dict[str, Any]) -> List[Dict[str, str]]:
+def parse_csv_from_profile(
+    profile: Dict[str, Any],
+    header_mapping: Optional[Dict[str, str]] = None,
+) -> List[Dict[str, str]]:
     """Parse a CSV file based on a profile dictionary.
 
     Args:
@@ -223,6 +239,8 @@ def parse_csv_from_profile(profile: Dict[str, Any]) -> List[Dict[str, str]]:
                 delimiter. Defaults to None.
             'doublequote' (bool, optional): Whether two consecutive
                 quotechars represent one. Defaults to True.
+        header_mapping (Dict[str, str], optional): Mapping to rename headers
+            after they are read.
 
     Returns:
         A list of dictionaries representing rows from the CSV.
@@ -280,6 +298,7 @@ def parse_csv_from_profile(profile: Dict[str, Any]) -> List[Dict[str, str]]:
             source=source,
             required_columns=None,  # checked above
             header_override=profile_column_names,
+            header_mapping=header_mapping,
             **common_args,
         )
 
@@ -287,5 +306,6 @@ def parse_csv_from_profile(profile: Dict[str, Any]) -> List[Dict[str, str]]:
     return parse_csv(
         source=source,
         required_columns=required_columns_profile,
+        header_mapping=header_mapping,
         **common_args,
     )

@@ -12,7 +12,7 @@ original Shift_JIS file `CSVからXML変換詳細手順説明.txt`.
 
 ## Key Features
 
-*   **CSV Parsing:** Flexible CSV reader supporting various encodings (UTF-8/Shift_JIS) and automatic detection of UTF-8 BOM files. Header rows can be supplied via `column_names` when calling `parse_csv_from_profile`, allowing CSVs without headers to be parsed.
+*   **CSV Parsing:** Flexible CSV reader supporting various encodings (UTF-8/Shift_JIS) and automatic detection of UTF-8 BOM files. Header rows can be supplied via `column_names` when calling `parse_csv_from_profile`, allowing CSVs without headers to be parsed. Headers may also be renamed using the optional `header_mapping` parameter.
 *   **Rule-Based Transformation:** Maps CSV data to intermediate models using external JSON rule files. The rule engine now supports dataclass targets, rounding of numeric values, and standardized handling of missing data.
 *   **XML Generation:** Creates multiple XML types:
     *   Health Checkup CDA (hc08)
