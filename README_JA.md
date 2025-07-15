@@ -44,10 +44,10 @@ python -m csv_to_xml_converter [-c CONFIG] [-p PROFILE] [--log-level LEVEL]
 - `CONFIG` : 設定JSONへのパス (デフォルト: `config_rules/config.json`)
 - `PROFILE` : CSVプロファイル名 (デフォルト: `grouped_checkup_profile`)
 - `LEVEL` : ログレベル (`DEBUG`, `INFO` など)
-- `--sample-test` : テスト用フォルダから各2件のみ処理して動作確認を行います
+- `--sample-test` : テスト用フォルダからCSVを処理します。 `--sample-num-files` で各フォルダから処理するファイル数を指定できます (デフォルト2)。 `--sample-only` を併用するとこの簡易テストのみを実行します。
 
 出力XMLは`data/output_xmls/`、ZIPアーカイブは`data/output_archives/`に生成されます。
-テスト用データは `3610123279`, `3610123675`, `3610123808`, `40歳未満健診CSV` の各フォルダにあります。 `--sample-test` オプションを指定すると、これらのフォルダから先頭2ファイルずつのみ処理し、動作を確認できます。大量データ全体を変換せず軽量にテストできるため推奨です。
+テスト用データは `3610123279`, `3610123675`, `3610123808`, `40歳未満健診CSV` の各フォルダにあります。 `--sample-test` オプションを指定すると、これらのフォルダから指定した件数（`--sample-num-files`）のCSVのみ処理し、動作を確認できます。大量データ全体を変換せず軽量にテストできるため推奨です。
 
 ## テスト実行
 
