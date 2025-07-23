@@ -109,6 +109,7 @@ The application is configured to look for XSDs in these specific locations. The 
     * `PROFILE` – name of the CSV profile defined in that config (defaults to `grouped_checkup_profile`)
     * `LEVEL` – optional logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL`) to override the configuration
     * `--sample-test` – process CSV files from the bundled test data folders. Use `--sample-num-files` to control how many files are processed from each folder (default is 2). Combine with `--sample-only` to run only this lightweight test.
+    * Users only provide CSV files; JSON files are generated automatically by the tool.
     * JSON data for each CSV is now written automatically during XML conversion. Parsed rows are saved as `.json` files. By default the JSON file is created next to the source CSV, but you can set `paths.json_output_dir` in the configuration to write them to a dedicated folder.
 4.  Output XMLs will be generated in `data/output_xmls/` and ZIP archives in `data/output_archives/`.
 5.  Logs are written to the console and/or `logs/app.log` as specified in
