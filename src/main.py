@@ -138,6 +138,11 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="When used with --sample-test, skip the normal conversion workflow.",
     )
+    parser.add_argument(
+        "--csv-to-json",
+        metavar="CSV",
+        help="Parse CSV with the selected profile and output JSON, then exit.",
+    )
     return parser.parse_args(args)
 
 
@@ -158,6 +163,12 @@ def main(cli_args=None):
     app_config["_config_file_path_"] = config_path
     main_logger = setup_logger(config=app_config)
     main_logger.info("Application starting - Grouped CDA Test Run...")
+
+    if cli.csv_to_json:
+        from csv_to_xml_converter.utils import csv_to_json as c2j
+        c2j.DEFAULT_CONFIG_FILE = config_path
+        c2j.convert_csv_to_json(cli.csv_to_json, cli.profile)
+        return
     output_dirs = [
         app_config.get("paths", {}).get("output_xmls", "data/output_xmls"),
         DEFAULT_CDA_FULL_OUTPUT_DIR,

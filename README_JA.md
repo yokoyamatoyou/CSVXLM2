@@ -31,6 +31,7 @@ python src/gui.py
 
 画面から設定JSONとCSVプロファイルを指定して変換を実行します。
 Windows環境ではプロジェクトルートの `run_gui.bat` を実行することで同じGUIが起動します。
+GUIにはCSVをJSONに変換する「CSV→JSON変換」ボタンも用意されています。
 
 ### CLI
 
@@ -46,6 +47,7 @@ python -m csv_to_xml_converter [-c CONFIG] [-p PROFILE] [--log-level LEVEL]
 - `PROFILE` : CSVプロファイル名 (デフォルト: `grouped_checkup_profile`)
 - `LEVEL` : ログレベル (`DEBUG`, `INFO` など)
 - `--sample-test` : テスト用フォルダからCSVを処理します。 `--sample-num-files` で各フォルダから処理するファイル数を指定できます (デフォルト2)。 `--sample-only` を併用するとこの簡易テストのみを実行します。
+- `--csv-to-json CSV` : 指定したCSVを解析しJSONファイルとして保存して終了します。
 
 出力XMLは`data/output_xmls/`、ZIPアーカイブは`data/output_archives/`に生成されます。
 テスト用にはリポジトリ直下に `TEST.csv` を同梱しています。以前の README で案内していた
