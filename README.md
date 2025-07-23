@@ -94,7 +94,8 @@ The application is configured to look for XSDs in these specific locations. The 
     ```
     Use the interface to select the configuration JSON and specify the CSV profile.
     On Windows systems you can also launch the GUI by executing
-    `run_gui.bat` in the project root.
+    `run_gui.bat` in the project root. A "CSV→JSON変換" button is provided to
+    export a single CSV to JSON using the chosen profile.
 3.  Alternatively, run the CLI directly:
     ```bash
     python src/main.py [-c CONFIG] [-p PROFILE] [--log-level LEVEL]
@@ -107,6 +108,7 @@ The application is configured to look for XSDs in these specific locations. The 
     * `PROFILE` – name of the CSV profile defined in that config (defaults to `grouped_checkup_profile`)
     * `LEVEL` – optional logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL`) to override the configuration
     * `--sample-test` – process CSV files from the bundled test data folders. Use `--sample-num-files` to control how many files are processed from each folder (default is 2). Combine with `--sample-only` to run only this lightweight test.
+    * `--csv-to-json CSV` – parse the specified CSV and write the records to a JSON file, then exit.
 4.  Output XMLs will be generated in `data/output_xmls/` and ZIP archives in `data/output_archives/`.
 5.  Logs are written to the console and/or `logs/app.log` as specified in
     `config_rules/config.json`. Set `logging.console` or `logging.file` to `true`

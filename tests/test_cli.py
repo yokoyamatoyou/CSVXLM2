@@ -14,3 +14,8 @@ def test_parse_args_log_level():
 def test_parse_args_log_level_default():
     args = parse_args([])
     assert args.log_level is None
+
+
+def test_parse_args_csv_to_json():
+    args = parse_args(["--csv-to-json", "in.csv"])
+    assert args.csv_to_json == "in.csv"
