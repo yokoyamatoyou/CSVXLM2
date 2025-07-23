@@ -34,9 +34,6 @@ class Application(tk.Tk):
         tk.Button(self, text="Run Conversion", command=self._run_conversion).grid(
             row=2, column=0, columnspan=3, pady=10
         )
-        tk.Button(self, text="CSV→JSON変換", command=self._run_csv_to_json).grid(
-            row=3, column=0, columnspan=3, pady=5
-        )
 
     def _browse_config(self):
         file_path = filedialog.askopenfilename(title="Select config file", filetypes=[("JSON", "*.json"), ("All", "*.*")])
@@ -52,21 +49,6 @@ class Application(tk.Tk):
             messagebox.showinfo("Success", "Conversion completed successfully.")
         except Exception as exc:
             messagebox.showerror("Error", f"An error occurred:\n{exc}")
-
-    def _run_csv_to_json(self):
-        csv_path = filedialog.askopenfilename(
-            title="Select CSV file", filetypes=[("CSV", "*.csv"), ("All", "*.*")]
-        )
-        if not csv_path:
-            return
-        config = self.config_entry.get().strip()
-        profile = self.profile_entry.get().strip()
-        try:
-            cli_main(["--config", config, "--profile", profile, "--csv-to-json", csv_path])
-            messagebox.showinfo("Success", "JSON file written next to CSV.")
-        except Exception as exc:
-            messagebox.showerror("Error", f"An error occurred:\n{exc}")
-
 
 if __name__ == "__main__":
     Application().mainloop()

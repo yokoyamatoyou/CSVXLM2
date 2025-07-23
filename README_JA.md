@@ -31,7 +31,6 @@ python src/gui.py
 
 画面から設定JSONとCSVプロファイルを指定して変換を実行します。
 Windows環境ではプロジェクトルートの `run_gui.bat` を実行することで同じGUIが起動します。
-GUIにはCSVをJSONに変換する「CSV→JSON変換」ボタンも用意されています。
 
 ### CLI
 
