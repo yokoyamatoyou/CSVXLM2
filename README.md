@@ -122,15 +122,7 @@ The application is configured to look for XSDs in these specific locations. The 
 
 ## Running Tests
 
-The test suite relies on the Python `lxml` package, `pytest`, and the `xmllint` command-line tool.
-Install the Python dependencies (including `pytest`) from `requirements.txt` and, on Debian/Ubuntu systems, install `xmllint` via the `libxml2-utils` package:
-
-```bash
-sudo apt-get update
-sudo apt-get install -y libxml2-utils
-```
-
-Run all unit tests from the project root with:
+Install the Python dependencies from `requirements.txt` and run all unit tests from the project root with:
 
 ```bash
 pytest -q
