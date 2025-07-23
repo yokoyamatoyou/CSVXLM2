@@ -1,2 +1,3 @@
 lxml
+pytest
 # dataclasses required for Python versions < 3.7

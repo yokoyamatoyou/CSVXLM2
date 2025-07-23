@@ -64,6 +64,8 @@ dependencies directly using:
 ```bash
 pip install -r requirements.txt
 ```
+This command installs both the runtime libraries and the `pytest` package used
+for running the test suite.
 
 ## XSD File Setup (Crucial for Operation)
 
@@ -120,8 +122,8 @@ The application is configured to look for XSDs in these specific locations. The 
 
 ## Running Tests
 
-The test suite relies on the Python `lxml` package and the `xmllint` command-line tool.
-`lxml` is installed from `requirements.txt`. On Debian/Ubuntu systems install `xmllint` via the `libxml2-utils` package:
+The test suite relies on the Python `lxml` package, `pytest`, and the `xmllint` command-line tool.
+Install the Python dependencies (including `pytest`) from `requirements.txt` and, on Debian/Ubuntu systems, install `xmllint` via the `libxml2-utils` package:
 
 ```bash
 sudo apt-get update
