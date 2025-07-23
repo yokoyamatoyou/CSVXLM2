@@ -299,6 +299,15 @@ class Orchestrator:
                 logger.error(f"No data from {csv_file_path}")
                 return []
 
+            # Dump parsed CSV rows to a JSON file next to the CSV
+            json_path = Path(csv_file_path).with_suffix(".json")
+            try:
+                with open(json_path, "w", encoding="utf-8") as jf:
+                    json.dump(parsed_data_rows, jf, ensure_ascii=False, indent=2)
+                logger.info(f"Wrote parsed records to {json_path}")
+            except Exception as e_dump:
+                logger.error(f"Failed to write JSON output {json_path}: {e_dump}")
+
             rules = load_rules(rules_file_path)
             Path(output_xml_dir).mkdir(parents=True, exist_ok=True)
             logger.info(
