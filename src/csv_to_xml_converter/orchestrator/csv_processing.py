@@ -124,7 +124,15 @@ class CSVProcessingMixin:
                 logger.error(f"No data from {csv_file_path}")
                 return []
 
-            json_path = Path(csv_file_path).with_suffix(".json")
+            json_out_dir = (
+                self.config.get("paths", {}).get("json_output_dir")
+                or self.config.get("json_output_dir")
+            )
+            if json_out_dir:
+                Path(json_out_dir).mkdir(parents=True, exist_ok=True)
+                json_path = Path(json_out_dir) / (Path(csv_file_path).stem + ".json")
+            else:
+                json_path = Path(csv_file_path).with_suffix(".json")
             try:
                 with open(json_path, "w", encoding="utf-8") as jf:
                     json.dump(parsed_data_rows, jf, ensure_ascii=False, indent=2)
