@@ -94,8 +94,7 @@ The application is configured to look for XSDs in these specific locations. The 
     ```
     Use the interface to select the configuration JSON and specify the CSV profile.
     On Windows systems you can also launch the GUI by executing
-    `run_gui.bat` in the project root. A "CSV→JSON変換" button is provided to
-    export a single CSV to JSON using the chosen profile.
+    `run_gui.bat` in the project root.
 3.  Alternatively, run the CLI directly:
     ```bash
     python src/main.py [-c CONFIG] [-p PROFILE] [--log-level LEVEL]
