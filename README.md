@@ -111,11 +111,11 @@ The application is configured to look for XSDs in these specific locations. The 
 5.  Logs are written to the console and/or `logs/app.log` as specified in
     `config_rules/config.json`. Set `logging.console` or `logging.file` to `true`
     or `false` to control the destinations.
-6.  Sample test data is located in the following folders:
-    `3610123279`, `3610123675`, `3610123808`, and `40歳未満健診CSV`. Running
-    `python src/main.py --sample-test --sample-num-files 1` converts the first CSV file from each of these
-    directories to XML. Adjust the number with `--sample-num-files` as needed. This keeps the tests lightweight
-    and avoids processing the full datasets.
+6.  A small sample CSV file named `TEST.csv` is included at the repository root. The
+    older instructions referring to the folders `3610123279`, `3610123675`, `3610123808`
+    and `40歳未満健診CSV` no longer apply as those directories are not bundled.
+    Use `TEST.csv` for quick experiments by pointing the configuration to this file
+    or by placing it under `data/input_csvs/` as needed.
 
 ## Running Tests
 
