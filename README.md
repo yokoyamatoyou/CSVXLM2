@@ -90,11 +90,11 @@ The application is configured to look for XSDs in these specific locations. The 
 
 1.  Install the dependencies listed in `requirements.txt` and ensure
     the XSD files are placed as described above.
-2.  Launch the Tkinter GUI to run the conversion workflow:
+2.  Launch the Tkinter GUI (displayed in Japanese) to run the conversion workflow:
     ```bash
     python src/gui.py
     ```
-    Use the interface to select the configuration JSON and specify the CSV profile.
+    Use the interface (now fully Japanese) to select the configuration JSON and specify the CSV profile.
     On Windows systems you can also launch the GUI by executing
     `run_gui.bat` in the project root.
 3.  Alternatively, run the CLI directly:
@@ -149,7 +149,7 @@ The implementation is divided into five phases:
 5. **Phase 5 – ZIP Packaging**
    * Assemble the XML files and schemas into a submission archive with the required directory structure.
 6. **Phase 6 – GUI Integration**
-   * Provide a simple Tkinter interface for selecting configuration files and running the conversion process.
+   * Provide a simple Tkinter interface for selecting configuration files and running the conversion process. The GUI text is displayed in Japanese.
 
 ## Phase 2 Progress
 
