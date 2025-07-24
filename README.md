@@ -112,7 +112,7 @@ Only **one consolidated XSD set** is needed for validation. Treat this set as th
     * `LEVEL` – optional logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL`) to override the configuration
     * `--sample-test` – process CSV files from the bundled test data folders. Use `--sample-num-files` to control how many files are processed from each folder (default is 2). Combine with `--sample-only` to run only this lightweight test.
     * Users only provide CSV files. JSON data is produced automatically during conversion, so there is no need to upload or manually convert JSON.
-    * Place multiple CSV files under `data/input_csvs/`. All CSVs in this directory will be converted in a single run.
+    * Place multiple CSV files under `data/input_csvs/` (or the directory specified by `paths.input_csvs` in the configuration). The CLI automatically scans this folder and processes each CSV it finds.
     * For each processed CSV a `.json` file is written automatically. By default this JSON file is created next to the source CSV, but you can set `paths.json_output_dir` in the configuration to write it to a dedicated folder.
 4.  Output XMLs will be generated in `data/output_xmls/` and ZIP archives in `data/output_archives/`.
 5.  Logs are written to the console and/or `logs/app.log` as specified in
