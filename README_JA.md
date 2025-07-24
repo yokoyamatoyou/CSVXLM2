@@ -21,6 +21,7 @@ pip install -r requirements.txt
 ```
 
 XSDファイルは`data/xsd_schemas`および`data/xsd_schemas_official`以下に配置してください。
+検証に必要なXSDはこの1セットだけで十分です。ルールブックとして扱ってください。
 
 ## 使い方
 
@@ -48,6 +49,7 @@ python -m csv_to_xml_converter [-c CONFIG] [-p PROFILE] [--log-level LEVEL]
 - `LEVEL` : ログレベル (`DEBUG`, `INFO` など)
 - `--sample-test` : テスト用フォルダからCSVを処理します。 `--sample-num-files` で各フォルダから処理するファイル数を指定できます (デフォルト2)。 `--sample-only` を併用するとこの簡易テストのみを実行します。
 - ユーザーはCSVファイルだけを用意すれば十分です。変換時にJSONが自動生成されるため、JSONファイルをアップロードしたり手動で変換したりする必要はありません。
+- `data/input_csvs/` 配下に複数のCSVファイルを置くことで、一度の実行で全ファイルを変換できます。
 - CSVからXMLへ変換する際、各CSVの解析結果は`.json`ファイルとして自動保存されます。デフォルトではCSVと同じ場所に出力されますが、設定ファイルの`paths.json_output_dir`を指定すると別ディレクトリに保存できます。
 
 出力XMLは`data/output_xmls/`、ZIPアーカイブは`data/output_archives/`に生成されます。

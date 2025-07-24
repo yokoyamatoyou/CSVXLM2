@@ -86,6 +86,8 @@ For the application to run correctly and perform XSD validations, the necessary 
 
 The application is configured to look for XSDs in these specific locations. The ZIP packaging process also sources XSDs from these directories, prioritizing `data/xsd_schemas_official/` for any overlapping file names (like `coreschemas/datatypes_hcgv08.xsd`).
 
+Only **one consolidated XSD set** is needed for validation. Treat this set as the rulebook for the conversion process.
+
 ## Usage
 
 1.  Install the dependencies listed in `requirements.txt` and ensure
@@ -110,6 +112,7 @@ The application is configured to look for XSDs in these specific locations. The 
     * `LEVEL` – optional logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL`) to override the configuration
     * `--sample-test` – process CSV files from the bundled test data folders. Use `--sample-num-files` to control how many files are processed from each folder (default is 2). Combine with `--sample-only` to run only this lightweight test.
     * Users only provide CSV files. JSON data is produced automatically during conversion, so there is no need to upload or manually convert JSON.
+    * Place multiple CSV files under `data/input_csvs/`. All CSVs in this directory will be converted in a single run.
     * For each processed CSV a `.json` file is written automatically. By default this JSON file is created next to the source CSV, but you can set `paths.json_output_dir` in the configuration to write it to a dedicated folder.
 4.  Output XMLs will be generated in `data/output_xmls/` and ZIP archives in `data/output_archives/`.
 5.  Logs are written to the console and/or `logs/app.log` as specified in
