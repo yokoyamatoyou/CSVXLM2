@@ -41,8 +41,8 @@ original Shift_JIS file `CSVからXML変換詳細手順説明.txt`.
     *   `input_csvs/`: Sample input CSV files.
     *   `output_xmls/`: Output directory for generated XML files.
     *   `output_archives/`: Output directory for generated ZIP archives.
-    *   `xsd_schemas/`: Contains general XSD schemas (ix08, su08, cc08, gc08, hg08, and their coreschemas).
-    *   `xsd_schemas_official/`: Contains official MHLW XSDs for HC08 (Health Checkup CDA) and its more comprehensive `coreschemas` (including base HL7 CDA schemas like `POCD_MT000040.xsd`).
+*   `XSD/`: Top-level folder containing the main XSD schemas and a `coreschemas/` subdirectory.
+*   `5521111111_00280081_202405271_1/XSD/`: Example directory mirroring the ZIP archive layout with the same XSD set.
 *   `scripts/`: Utility scripts for maintaining the rule engine's logging behavior (`inject_logging_script.py`, `cleanup_logging_script.py`, `fix_lookup_source_script.py`).
 
 ## Environment Setup
@@ -71,20 +71,14 @@ for running the test suite.
 
 For the application to run correctly and perform XSD validations, the necessary XSD schema files must be correctly placed in their respective directories:
 
-1.  **`data/xsd_schemas_official/`**:
-    *   Must contain `hc08_V08.xsd`.
-    *   Its `coreschemas/` subdirectory must be complete (e.g., including `POCD_MT000040.xsd`, `datatypes_hcgv08.xsd`, `narrativeBlock_hcgv08.xsd`, `voc_hcgv08.xsd`, `xlink.xsd`). This is typically the more comprehensive set of core HL7 CDA schemas.
+1.  **`XSD/`**:
+    *   Contains all XSD files required for validation such as `hc08_V08.xsd`, `hg08_V08.xsd`, `cc08_V08.xsd`, `gc08_V08.xsd`, `ix08_V08.xsd`, and `su08_V08.xsd`.
+    *   Includes a `coreschemas/` subdirectory with supporting schemas (`datatypes_hcgv08.xsd`, `narrativeBlock_hcgv08.xsd`, `voc_hcgv08.xsd`, etc.).
 
-2.  **`data/xsd_schemas/`**:
-    *   Must contain all other main XSDs:
-        *   `cc08_V08.xsd` (Checkup Settlement)
-        *   `gc08_V08.xsd` (Guidance Settlement)
-        *   `hg08_V08.xsd` (Health Guidance CDA)
-        *   `ix08_V08.xsd` (Index file)
-        *   `su08_V08.xsd` (Summary file)
-    *   Its `coreschemas/` subdirectory should contain any specific core schemas required by the XSDs in this directory (e.g., `datatypes_hcgv08.xsd`, `voc_hcgv08.xsd`).
+2.  **`5521111111_00280081_202405271_1/XSD/`**:
+    *   Example folder that mirrors the layout used inside a submission archive. It bundles the same XSD set as `XSD/`.
 
-The application is configured to look for XSDs in these specific locations. The ZIP packaging process also sources XSDs from these directories, prioritizing `data/xsd_schemas_official/` for any overlapping file names (like `coreschemas/datatypes_hcgv08.xsd`).
+The application loads schemas from these locations. During packaging, files from `5521111111_00280081_202405271_1/XSD/` take precedence over those in `XSD/` when the same name exists.
 
 Only **one consolidated XSD set** is needed for validation. Treat this set as the rulebook for the conversion process.
 

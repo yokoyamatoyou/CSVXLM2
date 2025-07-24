@@ -20,7 +20,7 @@ Python 3.10以上で動作します。依存パッケージをインストール
 pip install -r requirements.txt
 ```
 
-XSDファイルは`data/xsd_schemas`および`data/xsd_schemas_official`以下に配置してください。
+XSDファイルはプロジェクト直下の `XSD/` または `5521111111_00280081_202405271_1/XSD/` に配置してください。
 検証に必要なXSDはこの1セットだけで十分です。ルールブックとして扱ってください。
 
 ## 使い方
