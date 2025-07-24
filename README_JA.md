@@ -24,13 +24,13 @@ XSDファイルは`data/xsd_schemas`および`data/xsd_schemas_official`以下�
 
 ## 使い方
 
-### GUI
+### GUI（日本語対応）
 
 ```bash
 python src/gui.py
 ```
 
-画面から設定JSONとCSVプロファイルを指定して変換を実行します。
+画面はすべて日本語表示となっており、設定JSONとCSVプロファイルを指定して変換を実行します。
 Windows環境ではプロジェクトルートの `run_gui.bat` を実行することで同じGUIが起動します。
 
 ### CLI
