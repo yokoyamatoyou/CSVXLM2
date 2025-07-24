@@ -44,33 +44,26 @@ DEFAULT_INDEX_XSD_FILE = os.path.join(XSD_GENERAL_BASE, "ix08_V08.xsd")
 DEFAULT_SUMMARY_XSD_FILE = os.path.join(XSD_GENERAL_BASE, "su08_V08.xsd")
 
 # Paths for individual document generation (CDAs, Settlements)
-DEFAULT_CDA_FULL_INPUT_CSV = "data/input_csvs/sample_health_checkup_full.csv"
 DEFAULT_CDA_FULL_RULES_FILE = "config_rules/health_checkup_full_rules.json"
 DEFAULT_CDA_FULL_XSD_FILE = os.path.join(XSD_OFFICIAL_BASE, "hc08_V08.xsd")
 DEFAULT_CDA_FULL_OUTPUT_DIR = "data/output_xmls/cda_checkup_full/"
 DEFAULT_CDA_FULL_FILE_PREFIX = "hc_cda_"
 
-DEFAULT_HG_CDA_FULL_INPUT_CSV = (
-    "data/input_csvs/sample_health_guidance_full.csv"
-)
 DEFAULT_HG_CDA_FULL_RULES_FILE = "config_rules/health_guidance_full_rules.json"
 DEFAULT_HG_CDA_XSD_FILE = os.path.join(XSD_GENERAL_BASE, "hg08_V08.xsd")
 DEFAULT_HG_CDA_FULL_OUTPUT_DIR = "data/output_xmls/cda_guidance_full/"
 DEFAULT_HG_CDA_FILE_PREFIX = "hg_cda_"
 
-DEFAULT_CS_INPUT_CSV = "data/input_csvs/sample_checkup_settlement.csv"
 DEFAULT_CS_RULES_FILE = "config_rules/checkup_settlement_rules.json"
 DEFAULT_CS_XSD_FILE = os.path.join(XSD_GENERAL_BASE, "cc08_V08.xsd")
 DEFAULT_CS_OUTPUT_DIR = "data/output_xmls/settlements_checkup/"
 DEFAULT_CS_FILE_PREFIX = "cs_"
 
-DEFAULT_GS_INPUT_CSV = "data/input_csvs/sample_guidance_settlement.csv"
 DEFAULT_GS_RULES_FILE = "config_rules/guidance_settlement_rules.json"
 DEFAULT_GS_XSD_FILE = os.path.join(XSD_GENERAL_BASE, "gc08_V08.xsd")
 DEFAULT_GS_OUTPUT_DIR = "data/output_xmls/settlements_guidance/"
 DEFAULT_GS_FILE_PREFIX = "gs_"
 # Paths for Grouped Checkup CDA Test
-DEFAULT_GROUPED_CHECKUP_CSV = "data/input_csvs/sample_grouped_checkup.csv"
 DEFAULT_GROUPED_CHECKUP_RULES_FILE = "config_rules/grouped_checkup_rules.json"
 # Uses the same health checkup XSD as individual CDA generation
 DEFAULT_GROUPED_CHECKUP_XSD_FILE = os.path.join(XSD_OFFICIAL_BASE, "hc08_V08.xsd")
@@ -198,72 +191,72 @@ def main(cli_args=None):
     all_data_xml_files = []
     all_claims_xml_files = []
 
-    # Generate individual Health Checkup CDAs (HC08)
-    ghcf = orchestrator.process_csv_to_health_checkup_cdas(
-        DEFAULT_CDA_FULL_INPUT_CSV,
-        DEFAULT_CDA_FULL_RULES_FILE,
-        DEFAULT_CDA_FULL_XSD_FILE,
-        DEFAULT_CDA_FULL_OUTPUT_DIR,
-        DEFAULT_CDA_FULL_FILE_PREFIX,
-        cli.profile,
-    )
-    all_data_xml_files.extend(ghcf)
+    csv_input_dir = app_config.get("paths", {}).get("input_csvs", "data/input_csvs")
+    csv_paths = sorted(Path(csv_input_dir).glob("*.csv"))
+    if not csv_paths:
+        main_logger.warning(f"No CSV files found in {csv_input_dir}")
 
-    # Generate individual Health Guidance CDAs (HG08)
-    ghgf = orchestrator.process_csv_to_health_guidance_cdas(
-        DEFAULT_HG_CDA_FULL_INPUT_CSV,
-        DEFAULT_HG_CDA_FULL_RULES_FILE,
-        DEFAULT_HG_CDA_XSD_FILE,
-        DEFAULT_HG_CDA_FULL_OUTPUT_DIR,
-        DEFAULT_HG_CDA_FILE_PREFIX,
-        cli.profile,
-    )
-    all_data_xml_files.extend(ghgf)
+    for csv_path in csv_paths:
+        main_logger.info(f"Processing CSV: {csv_path}")
 
-    # Generate individual Checkup Settlement XMLs (CC08)
-    gcsf = orchestrator.process_csv_to_checkup_settlement_xmls(
-        DEFAULT_CS_INPUT_CSV,
-        DEFAULT_CS_RULES_FILE,
-        DEFAULT_CS_XSD_FILE,
-        DEFAULT_CS_OUTPUT_DIR,
-        DEFAULT_CS_FILE_PREFIX,
-        cli.profile,
-    )
-    all_claims_xml_files.extend(gcsf)
-
-    # Generate individual Guidance Settlement XMLs (GC08)
-    ggsf = orchestrator.process_csv_to_guidance_settlement_xmls(
-        DEFAULT_GS_INPUT_CSV,
-        DEFAULT_GS_RULES_FILE,
-        DEFAULT_GS_XSD_FILE,
-        DEFAULT_GS_OUTPUT_DIR,
-        DEFAULT_GS_FILE_PREFIX,
-        cli.profile,
-    )
-    all_claims_xml_files.extend(ggsf)
-
-    # --- Test for Grouped Checkup CDA ---
-    main_logger.info(
-        f"--- Test: Grouped Checkup CDA (profile: {cli.profile}) ---"
-    )
-    grouped_cda_files = orchestrator.process_csv_to_health_checkup_cdas(
-        DEFAULT_GROUPED_CHECKUP_CSV,
-        DEFAULT_GROUPED_CHECKUP_RULES_FILE,
-        DEFAULT_GROUPED_CHECKUP_XSD_FILE,
-        DEFAULT_GROUPED_CHECKUP_OUTPUT_DIR,
-        DEFAULT_GROUPED_CHECKUP_FILE_PREFIX,
-        cli.profile,
-    )
-    # Add grouped CDAs to the data list
-    all_data_xml_files.extend(grouped_cda_files)
-    if grouped_cda_files:
-        msg = (
-            f"OK: Generated {len(grouped_cda_files)} "
-            "Grouped Checkup CDA XML(s)."
+        ghcf = orchestrator.process_csv_to_health_checkup_cdas(
+            str(csv_path),
+            DEFAULT_CDA_FULL_RULES_FILE,
+            DEFAULT_CDA_FULL_XSD_FILE,
+            DEFAULT_CDA_FULL_OUTPUT_DIR,
+            DEFAULT_CDA_FULL_FILE_PREFIX,
+            cli.profile,
         )
-        main_logger.info(msg)
-    else:
-        main_logger.error("FAIL: Grouped Checkup CDA generation.")
+        all_data_xml_files.extend(ghcf)
+
+        ghgf = orchestrator.process_csv_to_health_guidance_cdas(
+            str(csv_path),
+            DEFAULT_HG_CDA_FULL_RULES_FILE,
+            DEFAULT_HG_CDA_XSD_FILE,
+            DEFAULT_HG_CDA_FULL_OUTPUT_DIR,
+            DEFAULT_HG_CDA_FILE_PREFIX,
+            cli.profile,
+        )
+        all_data_xml_files.extend(ghgf)
+
+        gcsf = orchestrator.process_csv_to_checkup_settlement_xmls(
+            str(csv_path),
+            DEFAULT_CS_RULES_FILE,
+            DEFAULT_CS_XSD_FILE,
+            DEFAULT_CS_OUTPUT_DIR,
+            DEFAULT_CS_FILE_PREFIX,
+            cli.profile,
+        )
+        all_claims_xml_files.extend(gcsf)
+
+        ggsf = orchestrator.process_csv_to_guidance_settlement_xmls(
+            str(csv_path),
+            DEFAULT_GS_RULES_FILE,
+            DEFAULT_GS_XSD_FILE,
+            DEFAULT_GS_OUTPUT_DIR,
+            DEFAULT_GS_FILE_PREFIX,
+            cli.profile,
+        )
+        all_claims_xml_files.extend(ggsf)
+
+        main_logger.info(
+            f"--- Grouped Checkup CDA for {csv_path.name} (profile: {cli.profile}) ---"
+        )
+        grouped_cda_files = orchestrator.process_csv_to_health_checkup_cdas(
+            str(csv_path),
+            DEFAULT_GROUPED_CHECKUP_RULES_FILE,
+            DEFAULT_GROUPED_CHECKUP_XSD_FILE,
+            DEFAULT_GROUPED_CHECKUP_OUTPUT_DIR,
+            DEFAULT_GROUPED_CHECKUP_FILE_PREFIX,
+            cli.profile,
+        )
+        all_data_xml_files.extend(grouped_cda_files)
+        if grouped_cda_files:
+            main_logger.info(
+                f"OK: Generated {len(grouped_cda_files)} Grouped Checkup CDA XML(s)."
+            )
+        else:
+            main_logger.error("FAIL: Grouped Checkup CDA generation.")
 
     # --- Generate Aggregated Index and Summary XMLs ---
     main_logger.info(f"--- Generating Aggregated Index and Summary XMLs ---")
