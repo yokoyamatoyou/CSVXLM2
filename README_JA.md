@@ -46,8 +46,8 @@ python -m csv_to_xml_converter [-c CONFIG] [-p PROFILE] [--log-level LEVEL]
 - `PROFILE` : CSVプロファイル名 (デフォルト: `grouped_checkup_profile`)
 - `LEVEL` : ログレベル (`DEBUG`, `INFO` など)
 - `--sample-test` : テスト用フォルダからCSVを処理します。 `--sample-num-files` で各フォルダから処理するファイル数を指定できます (デフォルト2)。 `--sample-only` を併用するとこの簡易テストのみを実行します。
-- ユーザーはCSVファイルだけを用意すればよく、JSONファイルをアップロードする必要はありません。ツールが自動で生成します。
-- CSVからXMLへ変換する際、各CSVの解析結果は`.json`ファイルとして自動的に保存されます。デフォルトではCSVと同じ場所に出力されますが、設定ファイルの`paths.json_output_dir`を指定すると別ディレクトリに保存できます。
+- ユーザーはCSVファイルだけを用意すれば十分です。変換時にJSONが自動生成されるため、JSONファイルをアップロードしたり手動で変換したりする必要はありません。
+- CSVからXMLへ変換する際、各CSVの解析結果は`.json`ファイルとして自動保存されます。デフォルトではCSVと同じ場所に出力されますが、設定ファイルの`paths.json_output_dir`を指定すると別ディレクトリに保存できます。
 
 出力XMLは`data/output_xmls/`、ZIPアーカイブは`data/output_archives/`に生成されます。
 テスト用にはリポジトリ直下に `TEST.csv` を同梱しています。以前の README で案内していた
