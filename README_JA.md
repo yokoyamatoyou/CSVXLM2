@@ -10,6 +10,7 @@
 - `config_rules/` 各種設定JSONおよびルールファイル
 - `data/` 入力CSV、生成されたXML、ZIPアーカイブ、XSDスキーマを格納
 - `tests/` 単体テスト
+- `CSVからXML変換詳細手順説明_utf8.txt` 変換手順のUTF-8版（Shift_JIS版は`CSVからXML変換詳細手順説明.txt`）
 
 ## 環境構築
 
